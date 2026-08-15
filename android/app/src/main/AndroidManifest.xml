@@ -5,6 +5,10 @@
         android:label="豆图"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+        <!-- 关闭 Impeller（Skia 渲染）：解决部分设备启动首帧渲染崩溃/闪退 -->
+        <meta-data
+            android:name="io.flutter.embedding.android.EnableImpeller"
+            android:value="false" />
         <activity
             android:name=".MainActivity"
             android:exported="true"
