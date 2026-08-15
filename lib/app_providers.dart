@@ -1,12 +1,10 @@
 /// 全局 Riverpod providers：设置 / 色卡 / 转换状态 / 历史。
 library;
 
-import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path_provider/path_provider.dart';
 
 import 'core/convert_isolate.dart';
 import 'core/palette.dart';
@@ -16,43 +14,43 @@ import 'models/board_preset.dart';
 import 'models/pattern.dart';
 import 'models/project.dart';
 import 'shared/storage/app_settings.dart';
+import 'shared/storage/app_storage.dart';
 import 'shared/storage/craft_progress_store.dart';
 import 'shared/storage/inventory_store.dart';
 import 'shared/storage/project_store.dart';
+import 'shared/storage/storage_factory.dart';
 
 // ---------------------------------------------------------------------------
 // 基础服务
 // ---------------------------------------------------------------------------
 
+/// 跨端存储（io 文件系统 / web localStorage 条件工厂）。
+final appStorageProvider =
+    FutureProvider<AppStorage>((ref) => createAppStorage());
+
 /// 设置存储（惰性初始化）。
 final settingsStoreProvider = FutureProvider<SettingsStore>((ref) async {
-  final dir = await getApplicationSupportDirectory();
-  return SettingsStore(File('${dir.path}${Platform.pathSeparator}settings.json'));
+  final storage = await ref.watch(appStorageProvider.future);
+  return SettingsStore(storage, 'settings.json');
 });
 
 /// 作品存储。
 final projectStoreProvider = FutureProvider<ProjectStore>((ref) async {
-  final dir = await getApplicationSupportDirectory();
-  return ProjectStore(
-    Directory('${dir.path}${Platform.pathSeparator}projects'),
-  );
+  final storage = await ref.watch(appStorageProvider.future);
+  return ProjectStore(storage, 'projects');
 });
 
 /// 跟做进度存储。
 final craftProgressStoreProvider =
     FutureProvider<CraftProgressStore>((ref) async {
-  final dir = await getApplicationSupportDirectory();
-  return CraftProgressStore(
-    File('${dir.path}${Platform.pathSeparator}craft_progress.json'),
-  );
+  final storage = await ref.watch(appStorageProvider.future);
+  return CraftProgressStore(storage, 'craft_progress.json');
 });
 
 /// 库存存储。
 final inventoryStoreProvider = FutureProvider<InventoryStore>((ref) async {
-  final dir = await getApplicationSupportDirectory();
-  return InventoryStore(
-    File('${dir.path}${Platform.pathSeparator}inventory.json'),
-  );
+  final storage = await ref.watch(appStorageProvider.future);
+  return InventoryStore(storage, 'inventory.json');
 });
 
 // ---------------------------------------------------------------------------

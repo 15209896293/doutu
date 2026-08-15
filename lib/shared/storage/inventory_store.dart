@@ -1,19 +1,21 @@
-/// 库存存储：`{ 色卡id: { 色号: 已有颗数 } }`，JSON 文件持久化。
+/// 库存存储：`{ 色卡id: { 色号: 已有颗数 } }`，跨端持久化。
 library;
 
 import 'dart:convert';
-import 'dart:io';
+
+import 'app_storage.dart';
 
 class InventoryStore {
-  final File file;
+  final AppStorage storage;
+  final String path;
 
-  InventoryStore(this.file);
+  InventoryStore(this.storage, this.path);
 
   Future<Map<String, Map<String, int>>> load() async {
-    if (!await file.exists()) return {};
+    final text = await storage.readText(path);
+    if (text == null) return {};
     try {
-      final json =
-          jsonDecode(await file.readAsString()) as Map<String, dynamic>;
+      final json = jsonDecode(text) as Map<String, dynamic>;
       final out = <String, Map<String, int>>{};
       json.forEach((paletteId, inner) {
         final m = <String, int>{};
@@ -29,7 +31,6 @@ class InventoryStore {
   }
 
   Future<void> save(Map<String, Map<String, int>> data) async {
-    await file.parent.create(recursive: true);
-    await file.writeAsString(jsonEncode(data), flush: true);
+    await storage.writeText(path, jsonEncode(data));
   }
 }

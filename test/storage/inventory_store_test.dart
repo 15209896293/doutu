@@ -1,15 +1,14 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:doutu/shared/storage/app_storage_io.dart';
 import 'package:doutu/shared/storage/inventory_store.dart';
 
 void main() {
   test('库存保存与读取往返', () async {
     final dir = await Directory.systemTemp.createTemp('doutu_inv_test');
     try {
-      final store = InventoryStore(
-        File('${dir.path}${Platform.pathSeparator}inventory.json'),
-      );
+      final store = InventoryStore(IoAppStorage(dir), 'inventory.json');
       await store.save({
         'mard_221': {'A01': 12, 'H07': 3},
       });

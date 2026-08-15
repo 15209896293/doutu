@@ -79,6 +79,15 @@ class _CropScreenState extends ConsumerState<CropScreen> {
             image == null ? null : Uint8List.fromList(img.encodePng(image));
         _error = image == null ? '图片解码失败，试试换一张图片' : null;
       });
+      // 可选：设置里开启「选图后自动框出主体」时，加载完成后自动框选。
+      if (image != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          final s = ref.read(settingsProvider).valueOrNull;
+          if (mounted && (s?.autoFrameSubject ?? false)) {
+            _autoFrameSubject();
+          }
+        });
+      }
     } catch (_) {
       setState(() {
         _error = '图片解码失败，试试换一张图片';

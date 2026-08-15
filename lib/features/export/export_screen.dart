@@ -1,20 +1,17 @@
 /// 导出与分享：高清 PNG（图纸+色号）/ PDF（图纸+BOM）/ 系统分享 / 保存作品。
 library;
 
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:go_router/go_router.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:go_router/go_router.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '../../app.dart';
 import '../../app_providers.dart';
 import '../../models/pattern.dart';
+import '../../shared/platform/share_helper.dart';
 import '../../shared/theme/app_theme.dart';
 import '../../shared/widgets/common_widgets.dart';
 import '../../shared/widgets/pattern_canvas.dart';
@@ -178,17 +175,15 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
         outputPixels: 1080,
         withCodes: _withCodes,
       );
-      final dir = await getApplicationDocumentsDirectory();
-      final file = File(
-          '${dir.path}${Platform.pathSeparator}豆图_${pattern.size}x${pattern.size}_${DateTime.now().millisecondsSinceEpoch}.png');
-      await file.writeAsBytes(bytes);
-      await SharePlus.instance.share(ShareParams(
-        files: [XFile(file.path, mimeType: 'image/png')],
+      await shareOrDownloadBytes(
+        fileName: '豆图_${pattern.size}x${pattern.size}.png',
+        mimeType: 'image/png',
+        bytes: bytes,
         subject: '豆图拼豆图纸',
-      ));
+      );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('PNG 已生成：${file.path}')),
+          const SnackBar(content: Text('PNG 已导出 🖼️')),
         );
       }
     } catch (e) {
@@ -267,17 +262,15 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
       );
 
       final bytes = await doc.save();
-      final dir = await getApplicationDocumentsDirectory();
-      final file = File(
-          '${dir.path}${Platform.pathSeparator}豆图_${pattern.size}x${pattern.size}_${DateTime.now().millisecondsSinceEpoch}.pdf');
-      await file.writeAsBytes(bytes);
-      await SharePlus.instance.share(ShareParams(
-        files: [XFile(file.path, mimeType: 'application/pdf')],
+      await shareOrDownloadBytes(
+        fileName: '豆图_${pattern.size}x${pattern.size}.pdf',
+        mimeType: 'application/pdf',
+        bytes: bytes,
         subject: '豆图拼豆图纸 PDF',
-      ));
+      );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('PDF 已生成：${file.path}')),
+          const SnackBar(content: Text('PDF 已导出 📄')),
         );
       }
     } catch (e) {
@@ -299,14 +292,12 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
         outputPixels: 1080,
         withCodes: _withCodes,
       );
-      final dir = await getTemporaryDirectory();
-      final file = File(
-          '${dir.path}${Platform.pathSeparator}豆图_share_${DateTime.now().millisecondsSinceEpoch}.png');
-      await file.writeAsBytes(bytes);
-      await SharePlus.instance.share(ShareParams(
-        files: [XFile(file.path, mimeType: 'image/png')],
+      await shareOrDownloadBytes(
+        fileName: '豆图_${pattern.size}x${pattern.size}.png',
+        mimeType: 'image/png',
+        bytes: bytes,
         subject: '豆图拼豆图纸',
-      ));
+      );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

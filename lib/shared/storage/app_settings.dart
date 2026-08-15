@@ -2,7 +2,8 @@
 library;
 
 import 'dart:convert';
-import 'dart:io';
+
+import 'app_storage.dart';
 
 /// 设置值对象。
 class AppSettings {
@@ -30,6 +31,9 @@ class AppSettings {
   /// 是否已看过裁剪页的「自动提取主体」引导。
   final bool cropTourSeen;
 
+  /// 可选：选图后自动框出图片主体（默认关闭）。
+  final bool autoFrameSubject;
+
   const AppSettings({
     this.paletteId = 'mard_221',
     this.boardId = '81',
@@ -39,6 +43,7 @@ class AppSettings {
     this.removeBackground = true,
     this.tourSeen = false,
     this.cropTourSeen = false,
+    this.autoFrameSubject = false,
   });
 
   AppSettings copyWith({
@@ -50,6 +55,7 @@ class AppSettings {
     bool? removeBackground,
     bool? tourSeen,
     bool? cropTourSeen,
+    bool? autoFrameSubject,
   }) {
     return AppSettings(
       paletteId: paletteId ?? this.paletteId,
@@ -60,6 +66,7 @@ class AppSettings {
       removeBackground: removeBackground ?? this.removeBackground,
       tourSeen: tourSeen ?? this.tourSeen,
       cropTourSeen: cropTourSeen ?? this.cropTourSeen,
+      autoFrameSubject: autoFrameSubject ?? this.autoFrameSubject,
     );
   }
 
@@ -72,6 +79,7 @@ class AppSettings {
         'removeBackground': removeBackground,
         'tourSeen': tourSeen,
         'cropTourSeen': cropTourSeen,
+        'autoFrameSubject': autoFrameSubject,
       };
 
   factory AppSettings.fromJson(Map<String, dynamic> json) => AppSettings(
@@ -83,19 +91,22 @@ class AppSettings {
         removeBackground: json['removeBackground'] as bool? ?? true,
         tourSeen: json['tourSeen'] as bool? ?? false,
         cropTourSeen: json['cropTourSeen'] as bool? ?? false,
+        autoFrameSubject: json['autoFrameSubject'] as bool? ?? false,
       );
 }
 
-/// 设置存储（JSON 文件）。
+/// 设置存储（跨端：io 文件 / web localStorage）。
 class SettingsStore {
-  final File file;
+  final AppStorage storage;
+  final String path;
 
-  SettingsStore(this.file);
+  SettingsStore(this.storage, this.path);
 
   Future<AppSettings> load() async {
-    if (!await file.exists()) return const AppSettings();
+    final text = await storage.readText(path);
+    if (text == null) return const AppSettings();
     try {
-      final json = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
+      final json = jsonDecode(text) as Map<String, dynamic>;
       return AppSettings.fromJson(json);
     } catch (_) {
       return const AppSettings();
@@ -103,7 +114,6 @@ class SettingsStore {
   }
 
   Future<void> save(AppSettings settings) async {
-    await file.parent.create(recursive: true);
-    await file.writeAsString(jsonEncode(settings.toJson()), flush: true);
+    await storage.writeText(path, jsonEncode(settings.toJson()));
   }
 }

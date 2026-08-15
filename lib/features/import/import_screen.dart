@@ -234,6 +234,23 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
                 ),
               ),
             ),
+            // 可选：选图后自动框出主体（默认关）。
+            SwitchListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+              dense: true,
+              title: const Text('✨ 选图后自动框出主体',
+                  style: TextStyle(fontSize: 14)),
+              subtitle: const Text('可选步骤：进裁剪页时自动框选主体',
+                  style: TextStyle(fontSize: 11)),
+              value: settings?.autoFrameSubject ?? false,
+              onChanged: (v) {
+                final s = settings;
+                if (s == null) return;
+                ref
+                    .read(settingsProvider.notifier)
+                    .saveSettings(s.copyWith(autoFrameSubject: v));
+              },
+            ),
             const SizedBox(height: 32),
             Row(
               key: _keyRecent,

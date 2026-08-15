@@ -1,8 +1,6 @@
 /// 色卡仓库：加载内置色卡 JSON（assets）。
 library;
 
-import 'dart:io';
-
 import 'palette.dart';
 
 /// 内置色卡元信息。
@@ -52,12 +50,6 @@ PaletteMeta? paletteMetaById(String id) {
 /// 从 JSON 字符串构建色卡。
 Palette paletteFromJson(String id, String displayName, String json) =>
     Palette.fromJsonString(id, displayName, json);
-
-/// 从文件系统加载色卡（测试 / 桌面调试用）。
-Future<Palette> loadPaletteFromFile(PaletteMeta meta) async {
-  final json = await File(meta.assetPath).readAsString();
-  return paletteFromJson(meta.id, meta.displayName, json);
-}
 
 /// 从任意 JSON 字符串加载。
 Palette loadPaletteFromString(PaletteMeta meta, String json) =>

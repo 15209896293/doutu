@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:doutu/models/pattern.dart';
 import 'package:doutu/models/project.dart';
+import 'package:doutu/shared/storage/app_storage_io.dart';
 import 'package:doutu/shared/storage/project_store.dart';
 
 Project _makeProject(String id, String name, {int ageMinutes = 0}) {
@@ -37,9 +38,15 @@ void main() {
     }
   });
 
+  ProjectStore makeStore({int? maxProjects}) => ProjectStore(
+        IoAppStorage(tempDir),
+        'projects',
+        maxProjects: maxProjects ?? 20,
+      );
+
   group('ProjectStore', () {
     test('保存与读取往返', () async {
-      final store = ProjectStore(tempDir);
+      final store = makeStore();
       final project = _makeProject('p1', '测试作品');
       await store.save(project);
 
@@ -51,7 +58,7 @@ void main() {
     });
 
     test('列表按更新时间倒序', () async {
-      final store = ProjectStore(tempDir);
+      final store = makeStore();
       await store.save(_makeProject('p1', '旧', ageMinutes: 60));
       await store.save(_makeProject('p2', '新', ageMinutes: 0));
       await store.save(_makeProject('p3', '中', ageMinutes: 30));
@@ -61,18 +68,17 @@ void main() {
     });
 
     test('超过上限时裁剪最旧作品', () async {
-      final store = ProjectStore(tempDir, maxProjects: 2);
+      final store = makeStore(maxProjects: 2);
       for (var i = 0; i < 5; i++) {
         await store.save(_makeProject('p$i', '作品$i', ageMinutes: i * 10));
       }
       final list = await store.list();
       expect(list.length, 2);
-      // 最新两个保留
       expect(list.map((p) => p.id).toSet(), {'p0', 'p1'});
     });
 
     test('删除作品', () async {
-      final store = ProjectStore(tempDir);
+      final store = makeStore();
       await store.save(_makeProject('p1', 'x'));
       await store.delete('p1');
       expect(await store.load('p1'), isNull);
@@ -80,15 +86,14 @@ void main() {
     });
 
     test('损坏 JSON 文件被跳过', () async {
-      final store = ProjectStore(tempDir);
-      await File('${tempDir.path}${Platform.pathSeparator}broken.json')
-          .writeAsString('{not valid json');
+      final store = makeStore();
+      await IoAppStorage(tempDir).writeText('projects/broken.json', '{not valid json');
       final list = await store.list();
       expect(list, isEmpty);
     });
 
     test('缩略图保存与读取', () async {
-      final store = ProjectStore(tempDir);
+      final store = makeStore();
       final bytes = List<int>.generate(100, (i) => i % 256);
       await store.saveThumbnail('p1', bytes);
       final loaded = await store.thumbnail('p1');
