@@ -165,7 +165,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               style: TextStyle(
                                   fontWeight: FontWeight.w700, fontSize: 15)),
                           SizedBox(height: 4),
-                          Text('版本 0.4.2 · 开源免费 · 禁止商用 · 无广告无内购',
+                          Text('版本 0.5.0 · 开源免费 · 禁止商用 · 无广告无内购',
                               style: TextStyle(
                                   fontSize: 12,
                                   color: AppColors.textSecondary)),
