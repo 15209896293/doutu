@@ -1,0 +1,234 @@
+﻿Starting a Gradle Daemon, 1 incompatible and 6 stopped Daemons could not be reused, use --status for details
+> Task :gradle:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :gradle:compileKotlin UP-TO-DATE
+> Task :gradle:compileJava NO-SOURCE
+> Task :gradle:compileGroovy NO-SOURCE
+> Task :gradle:pluginDescriptors UP-TO-DATE
+> Task :gradle:processResources UP-TO-DATE
+> Task :gradle:classes UP-TO-DATE
+> Task :gradle:jar UP-TO-DATE
+
+> Configure project :
+Build was configured to prefer settings repositories over project repositories but repository 'Google' was added by build file 'build.gradle.kts'
+Build was configured to prefer settings repositories over project repositories but repository 'MavenRepo' was added by build file 'build.gradle.kts'
+Build was configured to prefer settings repositories over project repositories but repository 'Google' was added by build file 'build.gradle.kts'
+Build was configured to prefer settings repositories over project repositories but repository 'MavenRepo' was added by build file 'build.gradle.kts'
+Build was configured to prefer settings repositories over project repositories but repository 'Google' was added by build file 'build.gradle.kts'
+Build was configured to prefer settings repositories over project repositories but repository 'MavenRepo' was added by build file 'build.gradle.kts'
+Build was configured to prefer settings repositories over project repositories but repository 'Google' was added by build file 'build.gradle.kts'
+Build was configured to prefer settings repositories over project repositories but repository 'MavenRepo' was added by build file 'build.gradle.kts'
+Build was configured to prefer settings repositories over project repositories but repository 'Google' was added by build file 'build.gradle.kts'
+Build was configured to prefer settings repositories over project repositories but repository 'MavenRepo' was added by build file 'build.gradle.kts'
+Build was configured to prefer settings repositories over project repositories but repository 'Google' was added by build file 'build.gradle.kts'
+Build was configured to prefer settings repositories over project repositories but repository 'MavenRepo' was added by build file 'build.gradle.kts'
+Build was configured to prefer settings repositories over project repositories but repository 'Google' was added by build file 'build.gradle.kts'
+Build was configured to prefer settings repositories over project repositories but repository 'MavenRepo' was added by build file 'build.gradle.kts'
+
+> Configure project :app
+WARNING: The option setting 'android.builtInKotlin=false' is deprecated.
+The current default is 'true'.
+It will be removed in version 10.0 of the Android Gradle plugin.
+WARNING: The option setting 'android.newDsl=false' is deprecated.
+The current default is 'true'.
+It will be removed in version 10.0 of the Android Gradle plugin.
+Build was configured to prefer settings repositories over project repositories but repository 'maven' was added by plugin 'dev.flutter.flutter-gradle-plugin'
+Build was configured to prefer settings repositories over project repositories but repository 'maven' was added by plugin 'dev.flutter.flutter-gradle-plugin'
+Build was configured to prefer settings repositories over project repositories but repository 'maven' was added by plugin 'dev.flutter.flutter-gradle-plugin'
+Build was configured to prefer settings repositories over project repositories but repository 'maven' was added by plugin 'dev.flutter.flutter-gradle-plugin'
+Build was configured to prefer settings repositories over project repositories but repository 'maven' was added by plugin 'dev.flutter.flutter-gradle-plugin'
+Build was configured to prefer settings repositories over project repositories but repository 'maven' was added by plugin 'dev.flutter.flutter-gradle-plugin'
+Build was configured to prefer settings repositories over project repositories but repository 'maven' was added by plugin 'dev.flutter.flutter-gradle-plugin'
+w: Deprecated 'org.jetbrains.kotlin.android' plugin usage
+The 'org.jetbrains.kotlin.android' plugin in project ':app' is no longer required for Kotlin support since AGP 9.0.
+Solution: Remove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.
+See https://kotl.in/gradle/agp-built-in-kotlin for more details.
+
+
+> Configure project :flutter_plugin_android_lifecycle
+Build was configured to prefer settings repositories over project repositories but repository 'Google2' was added by build file 'C:\Users\lenovo\AppData\Local\Pub\Cache\hosted\pub.dev\flutter_plugin_android_lifecycle-2.0.35\android\build.gradle.kts'
+Build was configured to prefer settings repositories over project repositories but repository 'MavenRepo2' was added by build file 'C:\Users\lenovo\AppData\Local\Pub\Cache\hosted\pub.dev\flutter_plugin_android_lifecycle-2.0.35\android\build.gradle.kts'
+w: Deprecated 'org.jetbrains.kotlin.android' plugin usage
+The 'org.jetbrains.kotlin.android' plugin in project ':flutter_plugin_android_lifecycle' is no longer required for Kotlin support since AGP 9.0.
+Solution: Remove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.
+See https://kotl.in/gradle/agp-built-in-kotlin for more details.
+
+
+> Configure project :image_picker_android
+Build was configured to prefer settings repositories over project repositories but repository 'Google2' was added by build file 'C:\Users\lenovo\AppData\Local\Pub\Cache\hosted\pub.dev\image_picker_android-0.8.13+19\android\build.gradle.kts'
+Build was configured to prefer settings repositories over project repositories but repository 'MavenRepo2' was added by build file 'C:\Users\lenovo\AppData\Local\Pub\Cache\hosted\pub.dev\image_picker_android-0.8.13+19\android\build.gradle.kts'
+w: Deprecated 'org.jetbrains.kotlin.android' plugin usage
+The 'org.jetbrains.kotlin.android' plugin in project ':image_picker_android' is no longer required for Kotlin support since AGP 9.0.
+Solution: Remove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.
+See https://kotl.in/gradle/agp-built-in-kotlin for more details.
+
+
+> Configure project :jni
+Build was configured to prefer settings repositories over project repositories but repository 'Google2' was added by build file 'C:\Users\lenovo\AppData\Local\Pub\Cache\hosted\pub.dev\jni-1.0.3\android\build.gradle'
+Build was configured to prefer settings repositories over project repositories but repository 'MavenRepo2' was added by build file 'C:\Users\lenovo\AppData\Local\Pub\Cache\hosted\pub.dev\jni-1.0.3\android\build.gradle'
+Build was configured to prefer settings repositories over project repositories but repository 'Google2' was added by build file 'C:\Users\lenovo\AppData\Local\Pub\Cache\hosted\pub.dev\jni-1.0.3\android\build.gradle'
+Build was configured to prefer settings repositories over project repositories but repository 'MavenRepo2' was added by build file 'C:\Users\lenovo\AppData\Local\Pub\Cache\hosted\pub.dev\jni-1.0.3\android\build.gradle'
+Build was configured to prefer settings repositories over project repositories but repository 'Google3' was added by build file 'C:\Users\lenovo\AppData\Local\Pub\Cache\hosted\pub.dev\jni-1.0.3\android\build.gradle'
+Build was configured to prefer settings repositories over project repositories but repository 'MavenRepo3' was added by build file 'C:\Users\lenovo\AppData\Local\Pub\Cache\hosted\pub.dev\jni-1.0.3\android\build.gradle'
+Build was configured to prefer settings repositories over project repositories but repository 'Google3' was added by build file 'C:\Users\lenovo\AppData\Local\Pub\Cache\hosted\pub.dev\jni-1.0.3\android\build.gradle'
+Build was configured to prefer settings repositories over project repositories but repository 'MavenRepo3' was added by build file 'C:\Users\lenovo\AppData\Local\Pub\Cache\hosted\pub.dev\jni-1.0.3\android\build.gradle'
+Build was configured to prefer settings repositories over project repositories but repository 'Google2' was added by build file 'C:\Users\lenovo\AppData\Local\Pub\Cache\hosted\pub.dev\jni-1.0.3\android\build.gradle'
+Build was configured to prefer settings repositories over project repositories but repository 'MavenRepo2' was added by build file 'C:\Users\lenovo\AppData\Local\Pub\Cache\hosted\pub.dev\jni-1.0.3\android\build.gradle'
+Build was configured to prefer settings repositories over project repositories but repository 'Google2' was added by build file 'C:\Users\lenovo\AppData\Local\Pub\Cache\hosted\pub.dev\jni-1.0.3\android\build.gradle'
+Build was configured to prefer settings repositories over project repositories but repository 'MavenRepo2' was added by build file 'C:\Users\lenovo\AppData\Local\Pub\Cache\hosted\pub.dev\jni-1.0.3\android\build.gradle'
+Build was configured to prefer settings repositories over project repositories but repository 'Google2' was added by build file 'C:\Users\lenovo\AppData\Local\Pub\Cache\hosted\pub.dev\jni-1.0.3\android\build.gradle'
+Build was configured to prefer settings repositories over project repositories but repository 'MavenRepo2' was added by build file 'C:\Users\lenovo\AppData\Local\Pub\Cache\hosted\pub.dev\jni-1.0.3\android\build.gradle'
+w: Deprecated 'org.jetbrains.kotlin.android' plugin usage
+The 'org.jetbrains.kotlin.android' plugin in project ':jni' is no longer required for Kotlin support since AGP 9.0.
+Solution: Remove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.
+See https://kotl.in/gradle/agp-built-in-kotlin for more details.
+
+
+> Configure project :jni_flutter
+Build was configured to prefer settings repositories over project repositories but repository 'Google3' was added by build file 'C:\Users\lenovo\AppData\Local\Pub\Cache\hosted\pub.dev\jni_flutter-1.0.2\android\build.gradle'
+Build was configured to prefer settings repositories over project repositories but repository 'MavenRepo3' was added by build file 'C:\Users\lenovo\AppData\Local\Pub\Cache\hosted\pub.dev\jni_flutter-1.0.2\android\build.gradle'
+Build was configured to prefer settings repositories over project repositories but repository 'Google3' was added by build file 'C:\Users\lenovo\AppData\Local\Pub\Cache\hosted\pub.dev\jni_flutter-1.0.2\android\build.gradle'
+Build was configured to prefer settings repositories over project repositories but repository 'MavenRepo3' was added by build file 'C:\Users\lenovo\AppData\Local\Pub\Cache\hosted\pub.dev\jni_flutter-1.0.2\android\build.gradle'
+Build was configured to prefer settings repositories over project repositories but repository 'Google4' was added by build file 'C:\Users\lenovo\AppData\Local\Pub\Cache\hosted\pub.dev\jni_flutter-1.0.2\android\build.gradle'
+Build was configured to prefer settings repositories over project repositories but repository 'MavenRepo4' was added by build file 'C:\Users\lenovo\AppData\Local\Pub\Cache\hosted\pub.dev\jni_flutter-1.0.2\android\build.gradle'
+Build was configured to prefer settings repositories over project repositories but repository 'Google4' was added by build file 'C:\Users\lenovo\AppData\Local\Pub\Cache\hosted\pub.dev\jni_flutter-1.0.2\android\build.gradle'
+Build was configured to prefer settings repositories over project repositories but repository 'MavenRepo4' was added by build file 'C:\Users\lenovo\AppData\Local\Pub\Cache\hosted\pub.dev\jni_flutter-1.0.2\android\build.gradle'
+Build was configured to prefer settings repositories over project repositories but repository 'Google3' was added by build file 'C:\Users\lenovo\AppData\Local\Pub\Cache\hosted\pub.dev\jni_flutter-1.0.2\android\build.gradle'
+Build was configured to prefer settings repositories over project repositories but repository 'MavenRepo3' was added by build file 'C:\Users\lenovo\AppData\Local\Pub\Cache\hosted\pub.dev\jni_flutter-1.0.2\android\build.gradle'
+Build was configured to prefer settings repositories over project repositories but repository 'Google3' was added by build file 'C:\Users\lenovo\AppData\Local\Pub\Cache\hosted\pub.dev\jni_flutter-1.0.2\android\build.gradle'
+Build was configured to prefer settings repositories over project repositories but repository 'MavenRepo3' was added by build file 'C:\Users\lenovo\AppData\Local\Pub\Cache\hosted\pub.dev\jni_flutter-1.0.2\android\build.gradle'
+Build was configured to prefer settings repositories over project repositories but repository 'Google3' was added by build file 'C:\Users\lenovo\AppData\Local\Pub\Cache\hosted\pub.dev\jni_flutter-1.0.2\android\build.gradle'
+Build was configured to prefer settings repositories over project repositories but repository 'MavenRepo3' was added by build file 'C:\Users\lenovo\AppData\Local\Pub\Cache\hosted\pub.dev\jni_flutter-1.0.2\android\build.gradle'
+w: Deprecated 'org.jetbrains.kotlin.android' plugin usage
+The 'org.jetbrains.kotlin.android' plugin in project ':jni_flutter' is no longer required for Kotlin support since AGP 9.0.
+Solution: Remove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.
+See https://kotl.in/gradle/agp-built-in-kotlin for more details.
+
+
+> Configure project :share_plus
+Build was configured to prefer settings repositories over project repositories but repository 'Google4' was added by build file 'C:\Users\lenovo\AppData\Local\Pub\Cache\hosted\pub.dev\share_plus-13.3.0\android\build.gradle.kts'
+Build was configured to prefer settings repositories over project repositories but repository 'MavenRepo4' was added by build file 'C:\Users\lenovo\AppData\Local\Pub\Cache\hosted\pub.dev\share_plus-13.3.0\android\build.gradle.kts'
+w: Deprecated 'org.jetbrains.kotlin.android' plugin usage
+The 'org.jetbrains.kotlin.android' plugin in project ':share_plus' is no longer required for Kotlin support since AGP 9.0.
+Solution: Remove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.
+See https://kotl.in/gradle/agp-built-in-kotlin for more details.
+
+
+> Task :app:DebugMinSdkCheck
+> Task :app:validateCompileSdkVersion
+> Task :app:preBuild
+> Task :app:preDebugBuild
+> Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :app:cleanMergeDebugAssets UP-TO-DATE
+> Task :app:compileFlutterBuildDebug UP-TO-DATE
+> Task :app:generateDebugAssets UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:generateDebugAssets UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:preBuild UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:preDebugBuild UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:mergeDebugAssets UP-TO-DATE
+> Task :image_picker_android:generateDebugAssets UP-TO-DATE
+> Task :image_picker_android:preBuild UP-TO-DATE
+> Task :image_picker_android:preDebugBuild UP-TO-DATE
+> Task :image_picker_android:mergeDebugAssets UP-TO-DATE
+> Task :jni:generateDebugAssets UP-TO-DATE
+> Task :jni:preBuild UP-TO-DATE
+> Task :jni:preDebugBuild UP-TO-DATE
+> Task :jni:mergeDebugAssets UP-TO-DATE
+> Task :jni_flutter:generateDebugAssets UP-TO-DATE
+> Task :jni_flutter:preBuild UP-TO-DATE
+> Task :jni_flutter:preDebugBuild UP-TO-DATE
+> Task :jni_flutter:mergeDebugAssets UP-TO-DATE
+> Task :share_plus:generateDebugAssets UP-TO-DATE
+> Task :share_plus:preBuild UP-TO-DATE
+> Task :share_plus:preDebugBuild UP-TO-DATE
+> Task :share_plus:mergeDebugAssets UP-TO-DATE
+> Task :app:mergeDebugAssets FAILED
+
+[Incubating] Problems report is available at: file:///P:/build/reports/problems/problems-report.html
+.\gradlew.bat : 
+所在位置 行:1 字符: 164
++ ... P:\android"; .\gradlew.bat assembleDebug --console=plain 2>&1 | Out-F ...
++                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:mergeDebugAssets'.
+> Could not resolve all files for configuration ':app:debugRuntimeClasspath'.
+   > Could not resolve all dependencies for configuration ':app:debugRuntimeClasspath'.
+      > Could not find io.flutter:armeabi_v7a_debug:1.0.0-5f77625673248ee5846fbcaf5d3e1a3878386fd7.
+        Searched in the following locations:
+          - https://maven.aliyun.com/repository/google/io/flutter/armeabi_v7a_debug/1.0.0-5f77625673248ee5846fbcaf5d3e1
+a3878386fd7/armeabi_v7a_debug-1.0.0-5f77625673248ee5846fbcaf5d3e1a3878386fd7.pom
+          - https://maven.aliyun.com/repository/central/io/flutter/armeabi_v7a_debug/1.0.0-5f77625673248ee5846fbcaf5d3e
+1a3878386fd7/armeabi_v7a_debug-1.0.0-5f77625673248ee5846fbcaf5d3e1a3878386fd7.pom
+          - https://dl.google.com/dl/android/maven2/io/flutter/armeabi_v7a_debug/1.0.0-5f77625673248ee5846fbcaf5d3e1a38
+78386fd7/armeabi_v7a_debug-1.0.0-5f77625673248ee5846fbcaf5d3e1a3878386fd7.pom
+          - https://repo.maven.apache.org/maven2/io/flutter/armeabi_v7a_debug/1.0.0-5f77625673248ee5846fbcaf5d3e1a38783
+86fd7/armeabi_v7a_debug-1.0.0-5f77625673248ee5846fbcaf5d3e1a3878386fd7.pom
+        Required by:
+            project ':app'
+   > Could not resolve all dependencies for configuration ':app:debugRuntimeClasspath'.
+      > Could not find io.flutter:arm64_v8a_debug:1.0.0-5f77625673248ee5846fbcaf5d3e1a3878386fd7.
+        Searched in the following locations:
+          - https://maven.aliyun.com/repository/google/io/flutter/arm64_v8a_debug/1.0.0-5f77625673248ee5846fbcaf5d3e1a3
+878386fd7/arm64_v8a_debug-1.0.0-5f77625673248ee5846fbcaf5d3e1a3878386fd7.pom
+          - https://maven.aliyun.com/repository/central/io/flutter/arm64_v8a_debug/1.0.0-5f77625673248ee5846fbcaf5d3e1a
+3878386fd7/arm64_v8a_debug-1.0.0-5f77625673248ee5846fbcaf5d3e1a3878386fd7.pom
+          - https://dl.google.com/dl/android/maven2/io/flutter/arm64_v8a_debug/1.0.0-5f77625673248ee5846fbcaf5d3e1a3878
+386fd7/arm64_v8a_debug-1.0.0-5f77625673248ee5846fbcaf5d3e1a3878386fd7.pom
+          - https://repo.maven.apache.org/maven2/io/flutter/arm64_v8a_debug/1.0.0-5f77625673248ee5846fbcaf5d3e1a3878386
+fd7/arm64_v8a_debug-1.0.0-5f77625673248ee5846fbcaf5d3e1a3878386fd7.pom
+        Required by:
+            project ':app'
+   > Could not resolve all dependencies for configuration ':app:debugRuntimeClasspath'.
+      > Could not find io.flutter:x86_64_debug:1.0.0-5f77625673248ee5846fbcaf5d3e1a3878386fd7.
+        Searched in the following locations:
+          - https://maven.aliyun.com/repository/google/io/flutter/x86_64_debug/1.0.0-5f77625673248ee5846fbcaf5d3e1a3878
+386fd7/x86_64_debug-1.0.0-5f77625673248ee5846fbcaf5d3e1a3878386fd7.pom
+          - https://maven.aliyun.com/repository/central/io/flutter/x86_64_debug/1.0.0-5f77625673248ee5846fbcaf5d3e1a387
+8386fd7/x86_64_debug-1.0.0-5f77625673248ee5846fbcaf5d3e1a3878386fd7.pom
+          - https://dl.google.com/dl/android/maven2/io/flutter/x86_64_debug/1.0.0-5f77625673248ee5846fbcaf5d3e1a3878386
+fd7/x86_64_debug-1.0.0-5f77625673248ee5846fbcaf5d3e1a3878386fd7.pom
+          - https://repo.maven.apache.org/maven2/io/flutter/x86_64_debug/1.0.0-5f77625673248ee5846fbcaf5d3e1a3878386fd7
+/x86_64_debug-1.0.0-5f77625673248ee5846fbcaf5d3e1a3878386fd7.pom
+        Required by:
+            project ':app'
+   > Could not resolve all dependencies for configuration ':app:debugRuntimeClasspath'.
+      > Could not find io.flutter:flutter_embedding_debug:1.0.0-5f77625673248ee5846fbcaf5d3e1a3878386fd7.
+        Searched in the following locations:
+          - https://maven.aliyun.com/repository/google/io/flutter/flutter_embedding_debug/1.0.0-5f77625673248ee5846fbca
+f5d3e1a3878386fd7/flutter_embedding_debug-1.0.0-5f77625673248ee5846fbcaf5d3e1a3878386fd7.pom
+          - https://maven.aliyun.com/repository/central/io/flutter/flutter_embedding_debug/1.0.0-5f77625673248ee5846fbc
+af5d3e1a3878386fd7/flutter_embedding_debug-1.0.0-5f77625673248ee5846fbcaf5d3e1a3878386fd7.pom
+          - https://dl.google.com/dl/android/maven2/io/flutter/flutter_embedding_debug/1.0.0-5f77625673248ee5846fbcaf5d
+3e1a3878386fd7/flutter_embedding_debug-1.0.0-5f77625673248ee5846fbcaf5d3e1a3878386fd7.pom
+          - https://repo.maven.apache.org/maven2/io/flutter/flutter_embedding_debug/1.0.0-5f77625673248ee5846fbcaf5d3e1
+a3878386fd7/flutter_embedding_debug-1.0.0-5f77625673248ee5846fbcaf5d3e1a3878386fd7.pom
+        Required by:
+            project ':app' > project :flutter_plugin_android_lifecycle
+            project ':app' > project :image_picker_android
+            project ':app' > project :jni
+            project ':app' > project :jni_flutter
+            project ':app' > project :share_plus
+
+* Try:
+> The project declares repositories, effectively ignoring the repositories you have declared in the settings.
+   To determine how project repositories are declared, configure your build to fail on project repositories.
+   For more information, please refer to https://docs.gradle.org/9.3.1/userguide/declaring_repositories.html#sub:fail_b
+uild_on_project_repositories in the Gradle documentation.
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.3.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 17s
+14 actionable tasks: 3 executed, 11 up-to-date

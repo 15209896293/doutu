@@ -1,0 +1,45 @@
+name: doutu
+description: 豆图 · 拼豆图纸转化器 —— 把照片变成可上手的拼豆图纸
+publish_to: 'none'
+version: 0.4.2+6
+
+environment:
+  sdk: '>=3.4.0 <4.0.0'
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/fonts/
+    - lib/core/palettes/mard_221.json
+    - lib/core/palettes/mard_291.json
+    - lib/core/palettes/perler.json
+    - lib/core/palettes/hama.json
+  fonts:
+    - family: EricaOne
+      fonts:
+        - asset: assets/fonts/EricaOne-Regular.ttf
+    - family: WorkSans
+      fonts:
+        - asset: assets/fonts/WorkSans-Regular.ttf
+        - asset: assets/fonts/WorkSans-Bold.ttf
+          weight: 700
+    - family: JetBrainsMono
+      fonts:
+        - asset: assets/fonts/JetBrainsMono-Regular.ttf
+    - family: PixelifySans
+      fonts:
+        - asset: assets/fonts/PixelifySans-Medium.ttf
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_riverpod: ^2.6.1
+  go_router: ^17.5.0
+  image: ^4.9.1
+  image_picker: ^1.2.3
+  path_provider: ^2.1.6
+  pdf: ^3.13.0
+  share_plus: ^13.3.0
+dev_dependencies:
+  flutter_lints: ^6.0.0
+  flutter_test:
+    sdk: flutter
