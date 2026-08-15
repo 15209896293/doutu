@@ -533,16 +533,29 @@ class _BoardGlyphPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size canvasSize) {
-    final cell = canvasSize.width / size;
+    // 缩略图最多画 32×32 格：128 板若画满 1.6 万格会导致页面卡顿
+    const maxCells = 32;
+    final int step;
+    final int n;
+    if (size <= maxCells) {
+      step = 1;
+      n = size;
+    } else {
+      step = (size / maxCells).ceil();
+      n = (size / step).ceil();
+    }
+    final cell = canvasSize.width / n;
     final paint = Paint()..color = AppColors.accentLavender;
-    for (var y = 0; y < size; y++) {
-      for (var x = 0; x < size; x++) {
+    for (var gy = 0; gy < n; gy++) {
+      for (var gx = 0; gx < n; gx++) {
+        final x = gx * step;
+        final y = gy * step;
         if (shape == BoardShape.circle &&
             !BoardPreset.isInsideCircle(x, y, size)) {
           continue;
         }
         canvas.drawRect(
-          Rect.fromLTWH(x * cell, y * cell, cell + 0.3, cell + 0.3),
+          Rect.fromLTWH(gx * cell, gy * cell, cell + 0.3, cell + 0.3),
           paint,
         );
       }

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>豆图 · 拼豆图纸转化器</title>
+<style>
+  :root {
+    --pink: #FF6B9D;
+    --mint: #6BCFB5;
+    --yellow: #FFD93D;
+    --blue: #6FB1FC;
+    --lavender: #C89BFF;
+    --orange: #FFA45C;
+    --bg: #FFF8F3;
+    --card: #FFFFFF;
+    --text: #3D2E2A;
+    --text2: #9B8B82;
+    --border: #F0E6DD;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 24px 20px 60px; }
+  header { text-align: center; padding: 48px 0 28px; }
+  .logo { font-size: 52px; }
+  h1 { font-size: 30px; font-weight: 800; margin: 10px 0 6px; }
+  .tagline { color: var(--text2); font-size: 16px; }
+  .badges { margin-top: 16px; display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+  .badge {
+    padding: 4px 14px; border-radius: 999px; font-size: 13px;
+    background: #fff; border: 1px solid var(--border); color: var(--text2);
+  }
+  .badge.hl { background: var(--pink); color: #fff; border-color: var(--pink); font-weight: 600; }
+  .section { margin-top: 36px; }
+  .section h2 { font-size: 20px; margin-bottom: 14px; }
+  .grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px;
+  }
+  .card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+    padding: 16px; box-shadow: 0 2px 12px rgba(255,107,157,0.06);
+  }
+  .card .emoji { font-size: 28px; }
+  .card h3 { font-size: 15px; margin: 6px 0 4px; }
+  .card p { font-size: 13px; color: var(--text2); }
+  .links { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-top: 20px; }
+  .btn {
+    display: inline-block; padding: 12px 26px; border-radius: 999px;
+    text-decoration: none; font-weight: 700; font-size: 15px;
+  }
+  .btn.primary { background: var(--pink); color: #fff; }
+  .btn.secondary { background: var(--mint); color: #fff; }
+  .btn.outline { background: transparent; border: 2px solid var(--pink); color: var(--pink); }
+  .contact { background: #fff; border: 1px solid var(--border); border-radius: 16px; padding: 18px; margin-top: 12px; }
+  .contact .row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; flex-wrap: wrap; gap: 6px; }
+  .contact .row b { color: var(--pink); }
+  .note { font-size: 12px; color: var(--text2); margin-top: 16px; text-align: center; }
+  footer { text-align: center; margin-top: 48px; color: var(--text2); font-size: 13px; }
+  code { background: #FFF1F6; color: var(--pink); padding: 1px 6px; border-radius: 6px; font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">🧸</div>
+    <h1>豆图 · 拼豆图纸转化器</h1>
+    <div class="tagline">把照片变成可上手的拼豆图纸 —— 色号准确 · 本地优先 · 完全免费</div>
+    <div class="badges">
+      <span class="badge hl">免费 · 无广告 · 无内购</span>
+      <span class="badge">图片不上传</span>
+      <span class="badge">纯本地处理</span>
+      <span class="badge">非商用开源</span>
+    </div>
+  </header>
+
+  <div class="section">
+    <h2>✨ 功能</h2>
+    <div class="grid">
+      <div class="card"><div class="emoji">🎨</div><h3>精准色卡映射</h3><p>CIEDE2000 色差算法 + KD-tree 加速，4 套色卡（MARD / Perler / Hama）</p></div>
+      <div class="card"><div class="emoji">✂️</div><h3>自动提取主体</h3><p>背景太乱？一键自动框出图片主体，再手动微调</p></div>
+      <div class="card"><div class="emoji">🔍</div><h3>图纸预览</h3><p>色号数字标注 + 图例式用量清单 + 原图对比 + 成品模拟</p></div>
+      <div class="card"><div class="emoji">📦</div><h3>库存 / 套盒匹配</h3><p>录入你手头的豆子，生成时提示还缺哪些色、缺几颗</p></div>
+      <div class="card"><div class="emoji">🧵</div><h3>数字填色跟做</h3><p>每格标编号、点格打勾，进度自动保存，拼一半也能续</p></div>
+      <div class="card"><div class="emoji">📤</div><h3>导出分享</h3><p>高清 PNG / PDF（图纸+用量清单）导出，微信小红书直接分享</p></div>
+      <div class="card"><div class="emoji">🎬</div><h3>新手引导</h3><p>点对点 coach marks，一步步带你上手</p></div>
+      <div class="card"><div class="emoji">🛡️</div><h3>隐私优先</h3><p>图片与数据只在你的设备本地，不上传任何服务器</p></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>📲 获取</h2>
+    <p style="font-size:14px;color:var(--text2);text-align:center;">
+      当前为 Flutter 移动应用（Android / iOS），APK 通过 GitHub Releases 发布。
+    </p>
+    <div class="links">
+      <a class="btn primary" href="https://github.com/15209896293/doutu/releases">下载 APK</a>
+      <a class="btn outline" href="https://github.com/15209896293/doutu">GitHub 源码</a>
+    </div>
+    <p class="note">如果 Releases 里还没有包，可以到仓库 <code>Issues</code> 里留言，或直接联系作者。</p>
+  </div>
+
+  <div class="section">
+    <h2>👤 联系作者</h2>
+    <div class="contact">
+      <div class="row"><span>QQ</span><b>3053676729</b></div>
+      <div class="row"><span>邮箱</span><b>3053676729@qq.com</b></div>
+      <div class="row"><span>开源地址</span><b>https://github.com/15209896293/doutu</b></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>📜 版权与许可</h2>
+    <p style="font-size:14px;color:var(--text2);">
+      本软件以 <b style="color:var(--text);">源代码开放 · 免费非商用</b> 方式发布，
+      <b style="color:var(--pink);">禁止未经授权的商业用途</b>。
+      色卡数据与字体遵循其原有许可（MIT / SIL OFL 1.1）。详见
+      <a href="https://github.com/15209896293/doutu/blob/main/LICENSE" style="color:var(--pink);">LICENSE</a>。
+    </p>
+  </div>
+
+  <footer>made with 💖 for 拼豆玩家 · © 2026 豆图作者</footer>
+</div>
+</body>
+</html>

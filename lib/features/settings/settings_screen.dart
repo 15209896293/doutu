@@ -11,15 +11,58 @@ import '../../shared/theme/app_theme.dart';
 import '../../shared/widgets/common_widgets.dart';
 import '../../shared/widgets/product_tour.dart';
 
-class SettingsScreen extends ConsumerWidget {
+/// 设置页新手引导锚点（coach marks 目标）。
+final _keyDefaultPalette = GlobalKey();
+final _keyDefaultBoard = GlobalKey();
+final _keyTourEntry = GlobalKey();
+final _keyAbout = GlobalKey();
+
+final _settingsTourSteps = <CoachStep>[
+  CoachStep(
+    targetKey: _keyDefaultPalette,
+    icon: '🎨',
+    title: '默认色卡',
+    body: '生成图纸时默认使用的豆子品牌色卡。',
+  ),
+  CoachStep(
+    targetKey: _keyDefaultBoard,
+    icon: '📐',
+    title: '默认板型',
+    body: '生成图纸时默认的拼豆板尺寸，可随时改。',
+  ),
+  CoachStep(
+    targetKey: _keyTourEntry,
+    icon: '🎬',
+    title: '新手引导',
+    body: '想再看一遍讲解，随时点这里。',
+  ),
+  CoachStep(
+    targetKey: _keyAbout,
+    icon: 'ℹ️',
+    title: '关于',
+    body: '版权说明、联系作者与开源地址。',
+  ),
+];
+
+class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+  bool _tourVisible = false;
+
+  @override
+  Widget build(BuildContext context) {
     final settingsAsync = ref.watch(settingsProvider);
     final settings = settingsAsync.valueOrNull;
 
-    return Scaffold(
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Scaffold(
       appBar: AppBar(title: const Text('⚙️ 设置')),
       body: SafeArea(
         child: settings == null
@@ -35,6 +78,7 @@ class SettingsScreen extends ConsumerWidget {
                     child: Column(
                       children: [
                         ListTile(
+                          key: _keyDefaultPalette,
                           leading: const Text('🎨'),
                           title: const Text('默认色卡'),
                           trailing: DropdownButton<String>(
@@ -59,6 +103,7 @@ class SettingsScreen extends ConsumerWidget {
                         ),
                         const Divider(height: 1, color: AppColors.border),
                         ListTile(
+                          key: _keyDefaultBoard,
                           leading: const Text('📐'),
                           title: const Text('默认板型'),
                           trailing: DropdownButton<String>(
@@ -95,12 +140,13 @@ class SettingsScreen extends ConsumerWidget {
                   const SizedBox(height: 12),
                   Card(
                     child: ListTile(
+                      key: _keyTourEntry,
                       leading: const Text('🎬'),
                       title: const Text('再看一遍新手引导'),
                       subtitle: const Text('重新播放完整流程讲解'),
                       trailing: const Icon(Icons.chevron_right_rounded,
                           color: AppColors.textSecondary),
-                      onTap: () => ProductTour.show(context),
+                      onTap: () => setState(() => _tourVisible = true),
                     ),
                   ),
                   const SizedBox(height: 24),
@@ -108,9 +154,10 @@ class SettingsScreen extends ConsumerWidget {
                       style: TextStyle(
                           fontWeight: FontWeight.w700, fontSize: 16)),
                   const SizedBox(height: 12),
-                  const Card(
+                  Card(
+                    key: _keyAbout,
                     child: Padding(
-                      padding: EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(16),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -208,9 +255,20 @@ class SettingsScreen extends ConsumerWidget {
                       ),
                     ),
                   ),
-                ],
-              ),
-      ),
+                  ],
+                ),
+        ),
+        ),
+        if (_tourVisible)
+          Positioned.fill(
+            child: CoachTour(
+              steps: _settingsTourSteps,
+              onFinished: _onTourFinished,
+            ),
+          ),
+      ],
     );
   }
+
+  void _onTourFinished() => setState(() => _tourVisible = false);
 }

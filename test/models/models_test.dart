@@ -89,6 +89,7 @@ void main() {
       expect(s.paletteId, 'mard_221');
       expect(s.boardId, '81');
       expect(s.tourSeen, false);
+      expect(s.cropTourSeen, false);
       expect(s.dither, true);
       expect(s.maxColors, 0);
     });

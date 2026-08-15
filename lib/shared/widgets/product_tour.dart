@@ -1,92 +1,120 @@
-/// 新手引导（product tour）：磨砂玻璃质感 · 透明背景卡片（反馈⑦）。
+/// 新手引导（coach marks，反馈：具体到标注点的指引，不再是固定卡片）。
 ///
-/// 全屏覆盖当前页面：BackdropFilter 磨砂模糊底层内容，中央玻璃卡片
-/// 分步讲解完整使用流程。纯覆盖层实现，不改变路由、不影响 App 逻辑；
-/// 首次启动自动播放（首页触发），设置页可随时重看。
+/// 每个步骤锚定一个真实 UI 元素（GlobalKey）：全屏压暗 + 目标孔洞高亮 +
+/// 指向卡片（磨砂玻璃质感 + 箭头）+ 底部「上一步/下一步/跳过」。
+///
+/// 作为屏幕自身 widget 树的一部分（Stack 覆盖层）渲染，保证底层页面
+/// 保持完整布局，coach mark 锚点才能量取到目标位置。
 library;
 
+import 'dart:math' as math;
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
 
-/// 引导步骤。
-class TourStep {
+/// 引导步骤：锚定一个真实 UI 元素 + 说明文字。
+class CoachStep {
+  final GlobalKey targetKey;
   final String icon;
   final String title;
   final String body;
 
-  const TourStep(this.icon, this.title, this.body);
+  const CoachStep({
+    required this.targetKey,
+    required this.icon,
+    required this.title,
+    required this.body,
+  });
 }
 
-/// 磨砂玻璃新手引导覆盖层。
-class ProductTour extends StatefulWidget {
-  const ProductTour({super.key});
+/// 点对点引导覆盖层。由宿主页面放到其 Stack 顶层，并在完成时回调 [onFinished]。
+class CoachTour extends StatefulWidget {
+  final List<CoachStep> steps;
+  final VoidCallback onFinished;
 
-  /// 在当前页面上弹出引导覆盖层。
-  static Future<void> show(BuildContext context) {
-    return showGeneralDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      barrierLabel: '新手引导',
-      barrierColor: Colors.transparent,
-      transitionDuration: const Duration(milliseconds: 200),
-      transitionBuilder: (context, animation, _, child) =>
-          FadeTransition(opacity: animation, child: child),
-      pageBuilder: (context, _, __) => const ProductTour(),
-    );
-  }
+  const CoachTour({
+    super.key,
+    required this.steps,
+    required this.onFinished,
+  });
 
   @override
-  State<ProductTour> createState() => _ProductTourState();
+  State<CoachTour> createState() => _CoachTourState();
 }
 
-class _ProductTourState extends State<ProductTour> {
-  int _step = 0;
+class _CoachTourState extends State<CoachTour> {
+  int _index = 0;
+  Rect? _targetRect;
+  int _measureAttempts = 0;
 
-  static const _steps = <TourStep>[
-    TourStep('🖼️', '把照片变成拼豆图纸',
-        '选一张图，豆图自动算出每个格子的色号与用量。\n图片全程本地处理，不上传任何服务器。'),
-    TourStep('✂️', '裁剪到想要的区域',
-        '框出你想拼的部分，支持 1:1、4:3、3:4 与自由比例。\n大图会先提醒你裁剪，避免分析失败。'),
-    TourStep('📐', '选板型与色卡',
-        '挑一块拼豆板（29 / 52 / 81 / 128）和你手头的豆子品牌，\n出图更贴合实际材料。'),
-    TourStep('✨', '一键生成图纸',
-        '区域采样 + CIEDE2000 精准映射 + 误差扩散渐变优化 + 去杂色，\n大图纸在后台计算，不卡界面。'),
-    TourStep('🔍', '预览与用量清单',
-        '默认显示每个格子的色号数字，图纸下方是图例式用量清单，\n点右上角图标可随时隐藏。'),
-    TourStep('🧵', '数字填色跟做',
-        '每格标注编号，点格子打勾记录进度；\n点底部图例可高亮该色剩余格子，照着拼就行。'),
-    TourStep('📤', '导出与保存',
-        '导出高清 PNG / PDF、分享给好友，\n或保存到作品库，随时回看继续编辑。'),
-  ];
+  CoachStep get _step => widget.steps[_index];
 
-  void _finish() => Navigator.of(context).pop();
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _measure());
+  }
+
+  void _measure() {
+    if (!mounted) return;
+    final ctx = _step.targetKey.currentContext;
+    final box = ctx?.findRenderObject();
+    if (box is RenderBox && box.hasSize && box.attached) {
+      final tl = box.localToGlobal(Offset.zero);
+      setState(() => _targetRect = tl & box.size);
+    } else if (_measureAttempts < 5) {
+      // 目标尚未布局完成 → 下一帧重试
+      _measureAttempts++;
+      WidgetsBinding.instance.addPostFrameCallback((_) => _measure());
+    } else {
+      // 目标不可见（如页面被切换）→ 安全结束，不影响 App。
+      widget.onFinished();
+    }
+  }
+
+  void _goTo(int next) {
+    if (next < 0 || next >= widget.steps.length) return;
+    setState(() {
+      _index = next;
+      _targetRect = null;
+      _measureAttempts = 0;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _measure());
+  }
+
+  void _finish() => widget.onFinished();
 
   @override
   Widget build(BuildContext context) {
-    final s = _steps[_step];
-    final isLast = _step == _steps.length - 1;
+    final screen = MediaQuery.of(context).size;
     return Material(
       color: Colors.transparent,
       child: Stack(
         children: [
-          // 磨砂玻璃背景：模糊 + 半透明白
+          // 磨砂玻璃背景
           Positioned.fill(
             child: ClipRect(
               child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-                child: Container(color: const Color(0x2EFFFFFF)),
+                filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+                child: Container(color: const Color(0x4DFFFFFF)),
               ),
             ),
           ),
+          // 压暗 + 目标孔洞
+          Positioned.fill(
+            child: CustomPaint(
+              painter: _CoachScrimPainter(target: _targetRect),
+            ),
+          ),
+          // 指向卡片
+          if (_targetRect != null) _buildCard(screen),
+          // 底部控制
           SafeArea(
-            child: Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
-                child: _glassCard(s, isLast),
-              ),
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: _buildControls(),
             ),
           ),
         ],
@@ -94,89 +122,186 @@ class _ProductTourState extends State<ProductTour> {
     );
   }
 
-  Widget _glassCard(TourStep s, bool isLast) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(24, 30, 24, 22),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.74),
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.85),
-          width: 1.4,
-        ),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x26000000),
-            blurRadius: 32,
-            offset: Offset(0, 14),
+  Widget _buildCard(Size screen) {
+    final target = _targetRect!;
+    const cardW = 300.0;
+    const cardH = 138.0;
+    const margin = 16.0;
+    final left = (target.center.dx - cardW / 2)
+        .clamp(margin, screen.width - cardW - margin);
+    double top;
+    final bool arrowUp;
+    if (target.bottom + cardH + 72 < screen.height) {
+      top = target.bottom + 14;
+      arrowUp = true;
+    } else if (target.top - cardH - 72 > 0) {
+      top = target.top - cardH - 14;
+      arrowUp = false;
+    } else {
+      top = (screen.height - cardH) / 2;
+      arrowUp = true;
+    }
+    final arrowDx = (target.center.dx - left).clamp(16.0, cardW - 16.0);
+
+    return Positioned(
+      left: left,
+      top: top,
+      width: cardW,
+      height: cardH,
+      child: _glassCard(arrowDx: arrowDx, arrowUp: arrowUp),
+    );
+  }
+
+  Widget _glassCard({required double arrowDx, required bool arrowUp}) {
+    final step = _step;
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.92),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.white, width: 1.2),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x33000000),
+                blurRadius: 16,
+                offset: Offset(0, 6),
+              ),
+            ],
           ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(step.icon, style: const TextStyle(fontSize: 30)),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      step.title,
+                      style: const TextStyle(
+                        fontFamily: 'WorkSans',
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                        color: AppColors.textMain,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      step.body,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        height: 1.45,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        // 指向目标的箭头
+        Positioned(
+          top: arrowUp ? -7 : null,
+          bottom: arrowUp ? null : -7,
+          left: arrowDx - 7,
+          child: Transform.rotate(
+            angle: math.pi / 4,
+            child: Container(
+              width: 14,
+              height: 14,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.92),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildControls() {
+    final isLast = _index == widget.steps.length - 1;
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.9),
+        borderRadius: BorderRadius.circular(999),
+        boxShadow: const [
+          BoxShadow(color: Color(0x22000000), blurRadius: 12),
         ],
       ),
-      child: Column(
+      child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(s.icon, style: const TextStyle(fontSize: 56)),
-          const SizedBox(height: 14),
-          Text(
-            s.title,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontFamily: 'WorkSans',
-              fontWeight: FontWeight.w700,
-              fontSize: 19,
-              color: AppColors.textMain,
-            ),
+          TextButton(
+            onPressed: _finish,
+            child: const Text('跳过'),
           ),
-          const SizedBox(height: 10),
-          Text(
-            s.body,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 14,
-              height: 1.6,
-              color: AppColors.textSecondary,
-            ),
-          ),
-          const SizedBox(height: 24),
+          const SizedBox(width: 6),
           Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              for (var i = 0; i < _steps.length; i++)
+              for (var i = 0; i < widget.steps.length; i++)
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
-                  margin: const EdgeInsets.symmetric(horizontal: 3),
-                  width: i == _step ? 22 : 8,
-                  height: 8,
+                  margin: const EdgeInsets.symmetric(horizontal: 2),
+                  width: i == _index ? 16 : 6,
+                  height: 6,
                   decoration: BoxDecoration(
-                    color: i == _step ? AppColors.primary : AppColors.border,
+                    color: i == _index ? AppColors.primary : AppColors.border,
                     borderRadius: BorderRadius.circular(999),
                   ),
                 ),
             ],
           ),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              TextButton(
-                onPressed: _finish,
-                child: const Text('跳过'),
-              ),
-              const Spacer(),
-              if (_step > 0) ...[
-                TextButton(
-                  onPressed: () => setState(() => _step--),
-                  child: const Text('上一步'),
-                ),
-                const SizedBox(width: 8),
-              ],
-              FilledButton(
-                onPressed: isLast ? _finish : () => setState(() => _step++),
-                child: Text(isLast ? '完成 🎉' : '下一步'),
-              ),
-            ],
+          const SizedBox(width: 6),
+          if (_index > 0)
+            TextButton(
+              onPressed: () => _goTo(_index - 1),
+              child: const Text('上一步'),
+            ),
+          FilledButton(
+            onPressed: isLast ? _finish : () => _goTo(_index + 1),
+            child: Text(isLast ? '完成 🎉' : '下一步'),
           ),
         ],
       ),
     );
   }
+}
+
+/// 全屏压暗 + 目标孔洞高亮。
+class _CoachScrimPainter extends CustomPainter {
+  final Rect? target;
+
+  _CoachScrimPainter({required this.target});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final path = Path()..fillType = PathFillType.evenOdd;
+    path.addRect(Offset.zero & size);
+    if (target != null) {
+      path.addRRect(RRect.fromRectAndRadius(target!, const Radius.circular(12)));
+    }
+    canvas.drawPath(path, Paint()..color = const Color(0x99000000));
+    if (target != null) {
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(target!, const Radius.circular(12)),
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2.5
+          ..color = AppColors.primary,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_CoachScrimPainter old) => old.target != target;
 }

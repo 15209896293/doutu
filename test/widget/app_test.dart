@@ -74,19 +74,20 @@ void main() {
     expect(find.text('再看一遍新手引导'), findsOneWidget);
   });
 
-  testWidgets('首次启动自动播放新手引导，跳过即关闭', (tester) async {
+  testWidgets('首次启动自动播放新手引导（coach marks），跳过即关闭', (tester) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: overrides(settings: const AppSettings(tourSeen: false)),
         child: const DoutuApp(),
       ),
     );
-    // 触发 post-frame 引导弹出
+    // 触发 post-frame 引导弹出（coach mark 需先量取目标再渲染卡片）
+    await tester.pump(const Duration(milliseconds: 300));
     await tester.pump(const Duration(milliseconds: 300));
     await tester.pump(const Duration(milliseconds: 300));
 
-    // 引导第一步出现（标题与首页文案不同，精确匹配）
-    expect(find.text('把照片变成拼豆图纸'), findsOneWidget);
+    // 引导第一步（点对点标注卡片标题）
+    expect(find.text('选一张图'), findsOneWidget);
     expect(find.text('跳过'), findsOneWidget);
 
     // 跳过 → 覆盖层关闭
@@ -94,6 +95,6 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     await tester.pump(const Duration(milliseconds: 300));
 
-    expect(find.text('把照片变成拼豆图纸'), findsNothing);
+    expect(find.text('选一张图'), findsNothing);
   });
 }

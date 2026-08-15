@@ -28,7 +28,7 @@ abstract class Routes {
   static const inventory = '/inventory';
 }
 
-final _router = GoRouter(
+GoRouter _buildRouter() => GoRouter(
   routes: [
     GoRoute(path: Routes.home, builder: (c, s) => const ImportScreen()),
     GoRoute(path: Routes.crop, builder: (c, s) => const CropScreen()),
@@ -44,8 +44,17 @@ final _router = GoRouter(
 );
 
 /// 豆图 App。
-class DoutuApp extends StatelessWidget {
+///
+/// 每个 App 实例持有独立的 GoRouter（避免跨测试/多次挂载时路由状态泄漏）。
+class DoutuApp extends StatefulWidget {
   const DoutuApp({super.key});
+
+  @override
+  State<DoutuApp> createState() => _DoutuAppState();
+}
+
+class _DoutuAppState extends State<DoutuApp> {
+  late final GoRouter _router = _buildRouter();
 
   @override
   Widget build(BuildContext context) {

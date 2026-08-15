@@ -27,6 +27,9 @@ class AppSettings {
   /// 是否已看过新手引导（product tour）。
   final bool tourSeen;
 
+  /// 是否已看过裁剪页的「自动提取主体」引导。
+  final bool cropTourSeen;
+
   const AppSettings({
     this.paletteId = 'mard_221',
     this.boardId = '81',
@@ -35,6 +38,7 @@ class AppSettings {
     this.dither = true,
     this.removeBackground = true,
     this.tourSeen = false,
+    this.cropTourSeen = false,
   });
 
   AppSettings copyWith({
@@ -45,6 +49,7 @@ class AppSettings {
     bool? dither,
     bool? removeBackground,
     bool? tourSeen,
+    bool? cropTourSeen,
   }) {
     return AppSettings(
       paletteId: paletteId ?? this.paletteId,
@@ -54,6 +59,7 @@ class AppSettings {
       dither: dither ?? this.dither,
       removeBackground: removeBackground ?? this.removeBackground,
       tourSeen: tourSeen ?? this.tourSeen,
+      cropTourSeen: cropTourSeen ?? this.cropTourSeen,
     );
   }
 
@@ -65,6 +71,7 @@ class AppSettings {
         'dither': dither,
         'removeBackground': removeBackground,
         'tourSeen': tourSeen,
+        'cropTourSeen': cropTourSeen,
       };
 
   factory AppSettings.fromJson(Map<String, dynamic> json) => AppSettings(
@@ -75,6 +82,7 @@ class AppSettings {
         dither: json['dither'] as bool? ?? true,
         removeBackground: json['removeBackground'] as bool? ?? true,
         tourSeen: json['tourSeen'] as bool? ?? false,
+        cropTourSeen: json['cropTourSeen'] as bool? ?? false,
       );
 }
 
