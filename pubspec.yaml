@@ -1,7 +1,7 @@
 name: doutu
 description: 豆图 · 拼豆图纸转化器 —— 把照片变成可上手的拼豆图纸
 publish_to: 'none'
-version: 0.5.0+7
+version: 0.6.0+8
 
 environment:
   sdk: '>=3.4.0 <4.0.0'
