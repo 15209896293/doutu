@@ -56,3 +56,7 @@ output/
 *.apk
 *.ipa
 *.aab
+
+# Flutter web 构建残留（docs/app/web 是源 web/web 的误复制，无需入库）
+docs/app/web/
+docs/app/.last_build_id

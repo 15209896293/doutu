@@ -159,6 +159,7 @@ class _CraftScreenState extends ConsumerState<CraftScreen> {
               child: _CraftCanvas(
                 grid: pattern.grid,
                 size: pattern.size,
+                height: pattern.height,
                 colors: colors,
                 labels: labels,
                 doneCells: _done,
@@ -197,8 +198,8 @@ class _CraftScreenState extends ConsumerState<CraftScreen> {
             child: LinearProgressIndicator(
               value: progress,
               minHeight: 12,
-              backgroundColor: AppColors.border,
-              valueColor: const AlwaysStoppedAnimation(AppColors.secondary),
+              backgroundColor: AppColors.fill,
+              valueColor: const AlwaysStoppedAnimation(AppColors.primary),
             ),
           ),
           const SizedBox(height: 4),
@@ -209,7 +210,7 @@ class _CraftScreenState extends ConsumerState<CraftScreen> {
             style: TextStyle(
               fontSize: 12,
               fontWeight: allDone ? FontWeight.w700 : FontWeight.w400,
-              color: allDone ? AppColors.secondary : AppColors.textSecondary,
+              color: allDone ? AppColors.success : AppColors.textSecondary,
             ),
           ),
         ],
@@ -292,7 +293,7 @@ class _CraftScreenState extends ConsumerState<CraftScreen> {
                           alignment: Alignment.center,
                           decoration: BoxDecoration(
                             color: isComplete
-                                ? AppColors.secondary
+                                ? AppColors.success
                                 : AppColors.textMain,
                             shape: BoxShape.circle,
                           ),
@@ -315,7 +316,7 @@ class _CraftScreenState extends ConsumerState<CraftScreen> {
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
                       color: isComplete
-                          ? AppColors.secondary
+                          ? AppColors.success
                           : AppColors.textMain,
                     ),
                   ),
@@ -329,7 +330,7 @@ class _CraftScreenState extends ConsumerState<CraftScreen> {
                         minHeight: 4,
                         backgroundColor: AppColors.border,
                         valueColor: AlwaysStoppedAnimation(
-                          isComplete ? AppColors.secondary : AppColors.primary,
+                          isComplete ? AppColors.success : AppColors.primary,
                         ),
                       ),
                     ),
@@ -348,6 +349,10 @@ class _CraftScreenState extends ConsumerState<CraftScreen> {
 class _CraftCanvas extends StatefulWidget {
   final List<int> grid;
   final int size;
+
+  /// 网格高度（非正方形；默认 == size）。
+  final int height;
+
   final List<int> colors;
   final List<int> labels;
   final Set<int> doneCells;
@@ -362,7 +367,8 @@ class _CraftCanvas extends StatefulWidget {
     required this.doneCells,
     required this.highlightCells,
     required this.onCellTap,
-  });
+    int? height,
+  }) : height = height ?? size;
 
   @override
   State<_CraftCanvas> createState() => _CraftCanvasState();
@@ -384,7 +390,8 @@ class _CraftCanvasState extends State<_CraftCanvas> {
     );
     final x = p.dx ~/ cell;
     final y = p.dy ~/ cell;
-    if (x < 0 || y < 0 || x >= widget.size || y >= widget.size) return -1;
+    final h = widget.height;
+    if (x < 0 || y < 0 || x >= widget.size || y >= h) return -1;
     return y * widget.size + x;
   }
 
@@ -393,7 +400,8 @@ class _CraftCanvasState extends State<_CraftCanvas> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final cell = constraints.maxWidth / widget.size;
-        final childSize = cell * widget.size;
+        final childW = cell * widget.size;
+        final childH = cell * (widget.height);
         return ClipRRect(
           borderRadius: BorderRadius.circular(AppRadius.card),
           child: Container(
@@ -411,12 +419,13 @@ class _CraftCanvasState extends State<_CraftCanvas> {
                   if (i >= 0) widget.onCellTap(i);
                 },
                 child: SizedBox(
-                  width: childSize,
-                  height: childSize,
+                  width: childW,
+                  height: childH,
                   child: CustomPaint(
                     painter: _CraftPainter(
                       grid: widget.grid,
                       size: widget.size,
+                      height: widget.height,
                       colors: widget.colors,
                       labels: widget.labels,
                       doneCells: widget.doneCells,
@@ -436,6 +445,7 @@ class _CraftCanvasState extends State<_CraftCanvas> {
 class _CraftPainter extends CustomPainter {
   final List<int> grid;
   final int size;
+  final int height;
   final List<int> colors;
   final List<int> labels;
   final Set<int> doneCells;
@@ -444,6 +454,7 @@ class _CraftPainter extends CustomPainter {
   _CraftPainter({
     required this.grid,
     required this.size,
+    required this.height,
     required this.colors,
     required this.labels,
     required this.doneCells,
@@ -456,7 +467,7 @@ class _CraftPainter extends CustomPainter {
     final paint = Paint();
 
     // 色块 / 透明格
-    for (var y = 0; y < size; y++) {
+    for (var y = 0; y < height; y++) {
       for (var x = 0; x < size; x++) {
         final i = y * size + x;
         final idx = grid[i];
@@ -476,7 +487,7 @@ class _CraftPainter extends CustomPainter {
       final hp = Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2
-        ..color = AppColors.accentYellow;
+        ..color = AppColors.primary;
       for (final i in highlightCells) {
         final x = i % size;
         final y = i ~/ size;
@@ -492,7 +503,7 @@ class _CraftPainter extends CustomPainter {
       textDirection: TextDirection.ltr,
       textAlign: TextAlign.center,
     );
-    for (var y = 0; y < size; y++) {
+    for (var y = 0; y < height; y++) {
       for (var x = 0; x < size; x++) {
         final i = y * size + x;
         final label = labels[i];
@@ -537,7 +548,7 @@ class _CraftPainter extends CustomPainter {
           style: TextStyle(
             fontSize: cell * 0.5,
             fontWeight: FontWeight.w700,
-            color: const Color(0xFF6BCFB5),
+            color: const Color(0xFF34C759),
           ),
         );
         check.layout(maxWidth: cell);
@@ -548,18 +559,27 @@ class _CraftPainter extends CustomPainter {
       }
     }
 
-    // 网格线
-    paint.color = const Color(0x14FF6B9D);
+    // 网格线：细线 + 每 5 格中粗 + 每 10 格大粗（辅助定位，苹果蓝）
+    final fine = Paint()..color = const Color(0x140071E3);
+    final mid = Paint()
+      ..color = const Color(0x330071E3)
+      ..strokeWidth = 1.2;
+    final bold = Paint()
+      ..color = const Color(0x660071E3)
+      ..strokeWidth = 2.0;
+    Paint line(int i) => i % 10 == 0 ? bold : (i % 5 == 0 ? mid : fine);
     for (var i = 0; i <= size; i++) {
       canvas.drawLine(
         Offset(i * cell, 0),
         Offset(i * cell, canvasSize.height),
-        paint,
+        line(i),
       );
+    }
+    for (var i = 0; i <= height; i++) {
       canvas.drawLine(
         Offset(0, i * cell),
         Offset(canvasSize.width, i * cell),
-        paint,
+        line(i),
       );
     }
   }

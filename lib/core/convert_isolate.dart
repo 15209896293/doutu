@@ -24,9 +24,22 @@ class ConvertRequest {
 class ConvertResponse {
   final Pattern? pattern;
   final List<int> avgColors;
+
+  /// 每格是否为背景格（映射为透明），供"背景蒙层"预览。
+  final List<bool> backgroundCells;
+
+  /// 诊断数据。
+  final ConvertDiagnostics? diagnostics;
+
   final String? error;
 
-  ConvertResponse({this.pattern, this.avgColors = const [], this.error});
+  ConvertResponse({
+    this.pattern,
+    this.avgColors = const [],
+    this.backgroundCells = const [],
+    this.diagnostics,
+    this.error,
+  });
 }
 
 /// Isolate 入口（顶层函数，供 compute 调用）。
@@ -34,7 +47,12 @@ ConvertResponse runConvertIsolate(ConvertRequest request) {
   try {
     final converter = PatternConverter(request.palette);
     final result = converter.convert(request.imageBytes, request.options);
-    return ConvertResponse(pattern: result.pattern, avgColors: result.avgColors);
+    return ConvertResponse(
+      pattern: result.pattern,
+      avgColors: result.avgColors,
+      backgroundCells: result.backgroundCells,
+      diagnostics: result.diagnostics,
+    );
   } catch (e) {
     return ConvertResponse(error: e.toString());
   }

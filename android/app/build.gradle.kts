@@ -1,8 +1,23 @@
+import java.util.Base64
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
+
+// 读取 --dart-define（Flutter 通过 -Pdart-defines 以 base64 逗号分隔传入）
+val dartDefines = mutableMapOf<String, String>()
+(project.findProperty("dart-defines") as String?)?.split(",")?.forEach { e ->
+    if (e.isNotBlank()) {
+        try {
+            val decoded = String(Base64.getDecoder().decode(e), Charsets.UTF_8)
+            val idx = decoded.indexOf('=')
+            if (idx > 0) dartDefines[decoded.substring(0, idx)] = decoded.substring(idx + 1)
+        } catch (_: IllegalArgumentException) { }
+    }
+}
+val isTrialBuild = dartDefines["TRIAL_MODE"] == "true"
 
 android {
     namespace = "com.doutu.doutu"
@@ -15,8 +30,8 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.doutu.doutu"
+        // 试用版用独立 applicationId（.trial），可与正式版共存安装
+        applicationId = "com.doutu.doutu" + if (isTrialBuild) ".trial" else ""
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
@@ -27,6 +42,11 @@ android {
         // flag during build.
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        if (isTrialBuild) {
+            manifestPlaceholders["appLabel"] = "豆图试用版"
+        } else {
+            manifestPlaceholders["appLabel"] = "豆图"
+        }
     }
 
     buildTypes {

@@ -25,6 +25,12 @@ class AppSettings {
   /// 默认是否移除背景。
   final bool removeBackground;
 
+  /// 默认转换预设（simplified/standard/detailed/smooth）。
+  final String presetId;
+
+  /// 默认色差距离模式（"oklab"/"ciede2000"）。
+  final String colorDistanceMode;
+
   /// 是否已看过新手引导（product tour）。
   final bool tourSeen;
 
@@ -38,9 +44,11 @@ class AppSettings {
     this.paletteId = 'mard_221',
     this.boardId = '81',
     this.customBoardSize = 52,
-    this.maxColors = 0,
-    this.dither = true,
+    this.maxColors = 10,
+    this.dither = false,
     this.removeBackground = true,
+    this.presetId = 'standard',
+    this.colorDistanceMode = 'oklab',
     this.tourSeen = false,
     this.cropTourSeen = false,
     this.autoFrameSubject = false,
@@ -53,6 +61,8 @@ class AppSettings {
     int? maxColors,
     bool? dither,
     bool? removeBackground,
+    String? presetId,
+    String? colorDistanceMode,
     bool? tourSeen,
     bool? cropTourSeen,
     bool? autoFrameSubject,
@@ -64,6 +74,8 @@ class AppSettings {
       maxColors: maxColors ?? this.maxColors,
       dither: dither ?? this.dither,
       removeBackground: removeBackground ?? this.removeBackground,
+      presetId: presetId ?? this.presetId,
+      colorDistanceMode: colorDistanceMode ?? this.colorDistanceMode,
       tourSeen: tourSeen ?? this.tourSeen,
       cropTourSeen: cropTourSeen ?? this.cropTourSeen,
       autoFrameSubject: autoFrameSubject ?? this.autoFrameSubject,
@@ -77,6 +89,8 @@ class AppSettings {
         'maxColors': maxColors,
         'dither': dither,
         'removeBackground': removeBackground,
+        'presetId': presetId,
+        'colorDistanceMode': colorDistanceMode,
         'tourSeen': tourSeen,
         'cropTourSeen': cropTourSeen,
         'autoFrameSubject': autoFrameSubject,
@@ -87,8 +101,10 @@ class AppSettings {
         boardId: json['boardId'] as String? ?? '81',
         customBoardSize: json['customBoardSize'] as int? ?? 52,
         maxColors: json['maxColors'] as int? ?? 0,
-        dither: json['dither'] as bool? ?? true,
+        dither: json['dither'] as bool? ?? false,
         removeBackground: json['removeBackground'] as bool? ?? true,
+        presetId: json['presetId'] as String? ?? 'standard',
+        colorDistanceMode: json['colorDistanceMode'] as String? ?? 'oklab',
         tourSeen: json['tourSeen'] as bool? ?? false,
         cropTourSeen: json['cropTourSeen'] as bool? ?? false,
         autoFrameSubject: json['autoFrameSubject'] as bool? ?? false,

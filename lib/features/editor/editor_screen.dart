@@ -68,8 +68,12 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     _ensureGrid();
     final op = _undoStack.removeLast();
     _redoStack.add(op);
-    _grid = List<int>.of(_grid);
-    _grid[op.index] = op.oldValue;
+    if (op.gridBefore != null) {
+      _grid = List<int>.of(op.gridBefore!);
+    } else {
+      _grid = List<int>.of(_grid);
+      _grid[op.index] = op.oldValue;
+    }
     _pushGrid(_grid);
     hapticTap();
   }
@@ -79,8 +83,33 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     _ensureGrid();
     final op = _redoStack.removeLast();
     _undoStack.add(op);
-    _grid = List<int>.of(_grid);
-    _grid[op.index] = op.newValue;
+    if (op.gridAfter != null) {
+      _grid = List<int>.of(op.gridAfter!);
+    } else {
+      _grid = List<int>.of(_grid);
+      _grid[op.index] = op.newValue;
+    }
+    _pushGrid(_grid);
+    hapticTap();
+  }
+
+  /// 镜像翻转（水平）：熨烫「摆反图、烫正图」刚需。
+  void _mirrorFlip() {
+    _ensureGrid();
+    final p = (ref.read(conversionProvider).pattern)!;
+    final n = p.size;
+    final m = p.height;
+    final before = List<int>.of(_grid);
+    final next = List<int>.of(_grid);
+    for (var y = 0; y < m; y++) {
+      for (var x = 0; x < n; x++) {
+        next[y * n + x] = before[y * n + (n - 1 - x)];
+      }
+    }
+    _undoStack.add(_EditOp.grid(before, next));
+    if (_undoStack.length > 10) _undoStack.removeAt(0);
+    _redoStack.clear();
+    _grid = next;
     _pushGrid(_grid);
     hapticTap();
   }
@@ -106,6 +135,11 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       appBar: AppBar(
         title: const Text('✏️ 编辑器'),
         actions: [
+          IconButton(
+            tooltip: '镜像翻转（水平）',
+            icon: const Icon(Icons.flip_rounded),
+            onPressed: _mirrorFlip,
+          ),
           IconButton(
             tooltip: '撤销',
             icon: const Icon(Icons.undo_rounded),
@@ -137,11 +171,13 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   }
 
   Widget _buildCanvas(List<int> colors, List<String> codes) {
+    final p = (ref.read(conversionProvider).pattern)!;
     return Padding(
       padding: const EdgeInsets.all(8),
       child: _EditorCanvas(
         grid: _grid,
-        size: (ref.read(conversionProvider).pattern)!.size,
+        size: p.size,
+        height: p.height,
         colors: colors,
         codes: codes,
         tool: _tool,
@@ -177,7 +213,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     _ensureGrid();
     final oldColor = _grid[index];
     if (oldColor == newColor) return;
-    final size = (ref.read(conversionProvider).pattern)!.size;
+    final p = (ref.read(conversionProvider).pattern)!;
+    final size = p.size;
+    final height = p.height;
     final visited = List<bool>.filled(_grid.length, false);
     final queue = <int>[index];
     visited[index] = true;
@@ -189,7 +227,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       for (final (dx, dy) in const [(1, 0), (-1, 0), (0, 1), (0, -1)]) {
         final nx = cx + dx;
         final ny = cy + dy;
-        if (nx < 0 || ny < 0 || nx >= size || ny >= size) continue;
+        if (nx < 0 || ny < 0 || nx >= size || ny >= height) continue;
         final ni = ny * size + nx;
         if (!visited[ni] && _grid[ni] == oldColor) {
           visited[ni] = true;
@@ -367,28 +405,49 @@ class _EditOp {
   final List<int>? batchIndices;
   final int? batchOldValue;
 
+  /// 整网格操作（镜像翻转）：撤销/重做的完整快照。
+  final List<int>? gridBefore;
+  final List<int>? gridAfter;
+
   _EditOp(this.index, this.oldValue, this.newValue)
       : batchIndices = null,
-        batchOldValue = null;
+        batchOldValue = null,
+        gridBefore = null,
+        gridAfter = null;
 
   _EditOp.fill(List<int> grid, List<int> indices, this.newValue)
       : index = indices.first,
         oldValue = grid[indices.first],
         batchIndices = indices,
-        batchOldValue = grid[indices.first];
+        batchOldValue = grid[indices.first],
+        gridBefore = null,
+        gridAfter = null;
 
   _EditOp.replaceAll(List<int> grid, List<int> indices, int oldValue)
       : index = indices.first,
         oldValue = oldValue,
         newValue = grid[indices.first],
         batchIndices = indices,
-        batchOldValue = oldValue;
+        batchOldValue = oldValue,
+        gridBefore = null,
+        gridAfter = null;
+
+  _EditOp.grid(this.gridBefore, this.gridAfter)
+      : index = 0,
+        oldValue = 0,
+        newValue = 0,
+        batchIndices = null,
+        batchOldValue = null;
 }
 
 /// 可交互网格画布：InteractiveViewer 缩放 + 点击/拖动映射到格坐标。
 class _EditorCanvas extends StatefulWidget {
   final List<int> grid;
   final int size;
+
+  /// 网格高度（非正方形；默认 == size）。
+  final int height;
+
   final List<int> colors;
   final List<String> codes;
   final EditorTool tool;
@@ -403,7 +462,8 @@ class _EditorCanvas extends StatefulWidget {
     required this.tool,
     required this.selectedColor,
     required this.onCell,
-  });
+    int? height,
+  }) : height = height ?? size;
 
   @override
   State<_EditorCanvas> createState() => _EditorCanvasState();
@@ -441,7 +501,8 @@ class _EditorCanvasState extends State<_EditorCanvas> {
     );
     final x = p.dx ~/ cell;
     final y = p.dy ~/ cell;
-    if (x < 0 || y < 0 || x >= widget.size || y >= widget.size) return -1;
+    final h = widget.height;
+    if (x < 0 || y < 0 || x >= widget.size || y >= h) return -1;
     return y * widget.size + x;
   }
 
@@ -450,7 +511,8 @@ class _EditorCanvasState extends State<_EditorCanvas> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final cell = constraints.maxWidth / widget.size;
-        final childSize = cell * widget.size;
+        final childW = cell * widget.size;
+        final childH = cell * (widget.height);
         return ClipRRect(
           borderRadius: BorderRadius.circular(AppRadius.card),
           child: Container(
@@ -469,12 +531,13 @@ class _EditorCanvasState extends State<_EditorCanvas> {
                     onPanStart: (d) => _handlePanStart(d, cell),
                     onPanUpdate: (d) => _handlePanUpdate(d, cell),
                     child: SizedBox(
-                      width: childSize,
-                      height: childSize,
+                      width: childW,
+                      height: childH,
                       child: CustomPaint(
                         painter: _EditorPainter(
                           grid: widget.grid,
                           size: widget.size,
+                          height: widget.height,
                           colors: widget.colors,
                           codes: widget.codes,
                         ),
@@ -494,12 +557,14 @@ class _EditorCanvasState extends State<_EditorCanvas> {
 class _EditorPainter extends CustomPainter {
   final List<int> grid;
   final int size;
+  final int height;
   final List<int> colors;
   final List<String> codes;
 
   _EditorPainter({
     required this.grid,
     required this.size,
+    required this.height,
     required this.colors,
     required this.codes,
   });
@@ -508,7 +573,7 @@ class _EditorPainter extends CustomPainter {
   void paint(Canvas canvas, Size canvasSize) {
     final cell = canvasSize.width / size;
     final paint = Paint();
-    for (var y = 0; y < size; y++) {
+    for (var y = 0; y < height; y++) {
       for (var x = 0; x < size; x++) {
         final idx = grid[y * size + x];
         final rect = Rect.fromLTWH(x * cell, y * cell, cell, cell);
@@ -521,23 +586,32 @@ class _EditorPainter extends CustomPainter {
         }
       }
     }
-    // 网格线
-    paint.color = const Color(0x14FF6B9D);
+    // 网格线：细线 + 每 5 格中粗 + 每 10 格大粗（辅助定位，苹果蓝）
+    final fine = Paint()..color = const Color(0x140071E3);
+    final mid = Paint()
+      ..color = const Color(0x330071E3)
+      ..strokeWidth = 1.2;
+    final bold = Paint()
+      ..color = const Color(0x660071E3)
+      ..strokeWidth = 2.0;
+    Paint line(int i) => i % 10 == 0 ? bold : (i % 5 == 0 ? mid : fine);
     for (var i = 0; i <= size; i++) {
       canvas.drawLine(
         Offset(i * cell, 0),
         Offset(i * cell, canvasSize.height),
-        paint,
+        line(i),
       );
+    }
+    for (var i = 0; i <= height; i++) {
       canvas.drawLine(
         Offset(0, i * cell),
         Offset(canvasSize.width, i * cell),
-        paint,
+        line(i),
       );
     }
   }
 
   @override
   bool shouldRepaint(_EditorPainter old) =>
-      old.grid != grid || old.size != size;
+      old.grid != grid || old.size != size || old.height != height;
 }

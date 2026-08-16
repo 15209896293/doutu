@@ -7,8 +7,10 @@ import 'package:go_router/go_router.dart';
 
 import '../../app.dart';
 import '../../app_providers.dart';
+import '../../core/color_mapper.dart';
 import '../../core/palette.dart';
 import '../../core/pattern_converter.dart';
+import '../../core/sampler.dart';
 import '../../models/board_preset.dart';
 import '../../shared/theme/app_theme.dart';
 import '../../shared/widgets/common_widgets.dart';
@@ -52,6 +54,9 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
             _sectionTitle('📐 板型', '选一块拼豆板'),
             _boardSelector(conv),
             const SizedBox(height: 24),
+            _sectionTitle('📏 图纸比例', '保持原图比例，不再压成正方形'),
+            _ratioSelector(conv),
+            const SizedBox(height: 24),
             _sectionTitle('🎨 色卡', '选你手头的豆子品牌'),
             palettes.when(
               loading: () => const Padding(
@@ -61,6 +66,9 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
               error: (e, _) => Text('色卡加载失败：$e'),
               data: (map) => _paletteSelector(map),
             ),
+            const SizedBox(height: 24),
+            _sectionTitle('✨ 图案细节', '一键切换转换风格，可再微调高级参数'),
+            _presetSelector(conv),
             const SizedBox(height: 24),
             _sectionTitle('🛠️ 高级参数', '点击展开微调'),
             Card(
@@ -72,7 +80,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                       padding: const EdgeInsets.all(14),
                       child: Row(
                         children: [
-                          const Text('色数上限 · 抖动 · 去背景',
+                          const Text('色数上限 · 抖动 · 去背景 · 色差',
                               style: TextStyle(fontSize: 14)),
                           const Spacer(),
                           Icon(
@@ -134,6 +142,49 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
     );
   }
 
+  /// 图纸比例：保持原图比例（宽度固定、高度自动）或正方形板型。
+  Widget _ratioSelector(ConversionState conv) {
+    final keepAspect = conv.options.gridHeight == 0;
+    return Card(
+      child: Column(
+        children: [
+          SwitchListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14),
+            dense: true,
+            title: const Text('保持原图比例', style: TextStyle(fontSize: 14)),
+            subtitle: const Text('4:3 / 16:9 / 竖图都不变形',
+                style: TextStyle(fontSize: 11)),
+            value: keepAspect,
+            onChanged: (v) {
+              final next = v
+                  ? conv.options.copyWith(gridHeight: 0)
+                  : conv.options.copyWith(clearGridHeight: true);
+              _updateOptions(next);
+              _persistSettings();
+            },
+          ),
+          if (keepAspect)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
+              child: _sliderRow(
+                label: '图纸宽度',
+                value: (conv.options.gridSize / 10).toDouble(),
+                min: 1,
+                max: 26,
+                divisions: 25,
+                display: '${conv.options.gridSize}',
+                onChanged: (v) {
+                  final w = (v * 10).round().clamp(10, 256);
+                  _updateOptions(conv.options.copyWith(gridSize: w));
+                  _persistSettings();
+                },
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
   Widget _sectionTitle(String emoji, String subtitle) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -144,17 +195,97 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
             emoji,
             style: const TextStyle(
               fontWeight: FontWeight.w700,
-              fontSize: 16,
+              fontSize: 19,
               color: AppColors.textMain,
             ),
           ),
+          const SizedBox(height: 2),
           Text(
             subtitle,
-            style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+            style: const TextStyle(
+              fontSize: 13,
+              color: AppColors.textSecondary,
+            ),
           ),
         ],
       ),
     );
+  }
+
+  /// 图案细节预设（对齐 pixel-beads：简化/标准/细腻/平滑自然）。
+  Widget _presetSelector(ConversionState conv) {
+    final settings = ref.watch(settingsProvider).valueOrNull;
+    final current = settings?.presetId ?? 'standard';
+    const presets = <(String, String, String)>[
+      ('simplified', '⚡ 精简', '8 色内 · 干净利落'),
+      ('standard', '✨ 标准', '均衡 · 默认推荐'),
+      ('detailed', '🔬 细腻', 'CIEDE2000 最准'),
+      ('smooth', '🌊 平滑', '渐变过渡自然'),
+    ];
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        for (final (id, label, sub) in presets)
+          GestureDetector(
+            onTap: () {
+              hapticTap();
+              _applyPreset(id);
+            },
+            child: Container(
+              width: (MediaQuery.of(context).size.width - 56) / 2,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: current == id ? AppColors.primary : AppColors.card,
+                borderRadius: BorderRadius.circular(AppRadius.card),
+                border: Border.all(
+                  color: current == id ? AppColors.primary : AppColors.border,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                      color: current == id
+                          ? Colors.white
+                          : AppColors.textMain,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    sub,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: current == id
+                          ? Colors.white.withValues(alpha: 0.9)
+                          : AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  /// 应用预设（保留用户已选的板型掩码与库存过滤）。
+  void _applyPreset(String id) {
+    final conv = ref.read(conversionProvider);
+    final preset = ConvertPresets.fromId(
+      id,
+      gridSize: conv.board.size,
+      maskShape: conv.board.shape == BoardShape.circle ? 'circle' : null,
+      allowedIndices: conv.options.allowedIndices,
+    );
+    ref.read(conversionProvider.notifier).setOptions(
+          preset.copyWith(restrictToOwned: conv.options.restrictToOwned),
+        );
+    _persistSettings();
   }
 
   Widget _boardSelector(ConversionState conv) {
@@ -188,7 +319,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
         ),
         child: Column(
           children: [
-            _BoardGlyph(size: preset.size, shape: preset.shape),
+            _BoardGlyph(size: preset.size, shape: preset.shape, selected: selected),
             const SizedBox(height: 8),
             Text(
               preset.label,
@@ -232,8 +363,9 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
             Text(
               '$size',
               style: TextStyle(
-                fontFamily: 'EricaOne',
-                fontSize: 22,
+                fontFamily: 'WorkSans',
+                fontWeight: FontWeight.w700,
+                fontSize: 24,
                 color: selected ? Colors.white : AppColors.textMain,
               ),
             ),
@@ -315,10 +447,10 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
         width: 96,
         padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
-          color: selected ? AppColors.secondary : AppColors.card,
+          color: selected ? AppColors.primary : AppColors.card,
           borderRadius: BorderRadius.circular(AppRadius.card),
           border: Border.all(
-            color: selected ? AppColors.secondary : AppColors.border,
+            color: selected ? AppColors.primary : AppColors.border,
           ),
         ),
         child: Column(
@@ -333,6 +465,19 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                 color: selected ? Colors.white : AppColors.textMain,
               ),
             ),
+            const SizedBox(height: 2),
+            Text(
+              palette.source ?? '${palette.length} 色',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 9,
+                color: selected
+                    ? Colors.white.withValues(alpha: 0.85)
+                    : AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 2),
             Text(
               '${palette.length} 色',
               style: TextStyle(
@@ -385,12 +530,72 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
             dense: true,
+            title: const Text('照片去噪', style: TextStyle(fontSize: 14)),
+            subtitle: const Text('照片噪点/灰蒙蒙时开启，色块更干净',
+                style: TextStyle(fontSize: 11)),
+            value: options.prefilterSmooth,
+            onChanged: (v) =>
+                _updateOptions(options.copyWith(prefilterSmooth: v)),
+          ),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            dense: true,
+            title: const Text('边缘锐化', style: TextStyle(fontSize: 14)),
+            subtitle: const Text('卡通/描边图更清晰，边缘不糊',
+                style: TextStyle(fontSize: 11)),
+            value: options.prefilterSharpen,
+            onChanged: (v) =>
+                _updateOptions(options.copyWith(prefilterSharpen: v)),
+          ),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            dense: true,
+            title: const Text('输入增强（颜色更鲜明）', style: TextStyle(fontSize: 14)),
+            subtitle: const Text('提升对比度与饱和度，适合偏灰的照片',
+                style: TextStyle(fontSize: 11)),
+            value: options.prefilterEnhance,
+            onChanged: (v) =>
+                _updateOptions(options.copyWith(prefilterEnhance: v)),
+          ),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            dense: true,
             title: const Text('只用手头有的豆子', style: TextStyle(fontSize: 14)),
             subtitle: const Text('需先在「我的豆子库存」录入',
                 style: TextStyle(fontSize: 11)),
             value: options.restrictToOwned,
             onChanged: (v) =>
                 _updateOptions(options.copyWith(restrictToOwned: v)),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Row(
+              children: [
+                const Text('色差档位', style: TextStyle(fontSize: 14)),
+                const Spacer(),
+                SegmentedButton<ColorDistance>(
+                  style: const ButtonStyle(
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  segments: const [
+                    ButtonSegment(
+                      value: ColorDistance.oklab,
+                      label: Text('OKLab 感知最快',
+                          style: TextStyle(fontSize: 11)),
+                    ),
+                    ButtonSegment(
+                      value: ColorDistance.ciede2000,
+                      label: Text('CIEDE2000 最准',
+                          style: TextStyle(fontSize: 11)),
+                    ),
+                  ],
+                  selected: {options.colorDistanceMode},
+                  onSelectionChanged: (s) => _updateOptions(
+                    options.copyWith(colorDistanceMode: s.first),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -467,10 +672,21 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
             maxColors: conv.options.maxColors,
             dither: conv.options.dither,
             removeBackground: conv.options.removeBackground,
+            presetId: _presetIdFor(conv),
+            colorDistanceMode: conv.options.colorDistanceMode.name,
           ));
     } catch (_) {
       // 持久化失败不影响生成。
     }
+  }
+
+  /// 由当前参数反推预设 id（供偏好记忆；未知组合回退 standard）。
+  String _presetIdFor(ConversionState conv) {
+    final o = conv.options;
+    if (o.cellSamplingMode == CellSamplingMode.average) return 'smooth';
+    if (o.colorDistanceMode == ColorDistance.ciede2000) return 'detailed';
+    if (o.maxColors > 0 && o.maxColors <= 8) return 'simplified';
+    return 'standard';
   }
 
   Future<void> _generate(BuildContext context) async {
@@ -514,13 +730,20 @@ class _BoardGlyph extends StatelessWidget {
   final int size;
   final BoardShape shape;
 
-  const _BoardGlyph({required this.size, required this.shape});
+  /// 是否选中（选中时格子画白色，便于在蓝色卡片上显示）。
+  final bool selected;
+
+  const _BoardGlyph({
+    required this.size,
+    required this.shape,
+    this.selected = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     return CustomPaint(
       size: const Size(44, 44),
-      painter: _BoardGlyphPainter(size: size, shape: shape),
+      painter: _BoardGlyphPainter(size: size, shape: shape, selected: selected),
     );
   }
 }
@@ -528,8 +751,13 @@ class _BoardGlyph extends StatelessWidget {
 class _BoardGlyphPainter extends CustomPainter {
   final int size;
   final BoardShape shape;
+  final bool selected;
 
-  _BoardGlyphPainter({required this.size, required this.shape});
+  _BoardGlyphPainter({
+    required this.size,
+    required this.shape,
+    required this.selected,
+  });
 
   @override
   void paint(Canvas canvas, Size canvasSize) {
@@ -545,7 +773,7 @@ class _BoardGlyphPainter extends CustomPainter {
       n = (size / step).ceil();
     }
     final cell = canvasSize.width / n;
-    final paint = Paint()..color = AppColors.accentLavender;
+    final paint = Paint()..color = selected ? Colors.white : AppColors.accentBlue;
     for (var gy = 0; gy < n; gy++) {
       for (var gx = 0; gx < n; gx++) {
         final x = gx * step;
@@ -564,7 +792,7 @@ class _BoardGlyphPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_BoardGlyphPainter old) =>
-      old.size != size || old.shape != shape;
+      old.size != size || old.shape != shape || old.selected != selected;
 }
 
 /// 色卡色板预览（取间隔色）。

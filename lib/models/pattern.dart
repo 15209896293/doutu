@@ -43,10 +43,13 @@ class BomEntry {
 
 /// 拼豆图纸：色号网格 + 用量清单。
 class Pattern {
-  /// 网格边长（N×N）。
+  /// 网格宽度（N）。
   final int size;
 
-  /// 行优先色号索引矩阵；-1 = 透明格。
+  /// 网格高度（M）；正方形时为 == size。支持按原图比例的非正方形图纸。
+  final int height;
+
+  /// 行优先色号索引矩阵（stride = [size]）；-1 = 透明格。
   final List<int> grid;
 
   /// 色卡 id（如 "mard_221"）。
@@ -60,7 +63,8 @@ class Pattern {
     required this.grid,
     required this.paletteId,
     required this.bom,
-  });
+    int? height,
+  }) : height = height ?? size;
 
   int at(int x, int y) => grid[y * size + x];
 
@@ -72,6 +76,7 @@ class Pattern {
 
   Map<String, dynamic> toJson() => {
         'size': size,
+        if (height != size) 'height': height,
         'grid': grid,
         'paletteId': paletteId,
         'bom': bom.map((e) => e.toJson()).toList(),
@@ -79,6 +84,7 @@ class Pattern {
 
   factory Pattern.fromJson(Map<String, dynamic> json) => Pattern(
         size: json['size'] as int,
+        height: json['height'] as int?,
         grid: (json['grid'] as List<dynamic>).cast<int>(),
         paletteId: json['paletteId'] as String,
         bom: (json['bom'] as List<dynamic>)

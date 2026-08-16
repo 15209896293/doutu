@@ -360,32 +360,35 @@ class _CropScreenState extends ConsumerState<CropScreen> {
         );
         _cropRect = rect;
 
-        return Stack(
-          children: [
-            Positioned.fill(
-              child: ClipRect(
-                child: InteractiveViewer(
-                  transformationController: _controller,
-                  minScale: 0.1,
-                  maxScale: 10,
-                  constrained: false,
-                  child: Image.memory(
-                    _displayBytes!,
-                    width: constraints.maxWidth,
-                    height: constraints.maxHeight,
-                    fit: BoxFit.contain,
-                    gaplessPlayback: true,
+        return Container(
+          color: const Color(0xFF000000), // 苹果式深色裁剪底
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: ClipRect(
+                  child: InteractiveViewer(
+                    transformationController: _controller,
+                    minScale: 0.1,
+                    maxScale: 10,
+                    constrained: false,
+                    child: Image.memory(
+                      _displayBytes!,
+                      width: constraints.maxWidth,
+                      height: constraints.maxHeight,
+                      fit: BoxFit.contain,
+                      gaplessPlayback: true,
+                    ),
                   ),
                 ),
               ),
-            ),
-            // 遮罩
-            Positioned.fill(
-              child: IgnorePointer(
-                child: CustomPaint(painter: _CropMaskPainter(rect)),
+              // 遮罩
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: CustomPaint(painter: _CropMaskPainter(rect)),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         );
       },
     );

@@ -6,6 +6,7 @@ import 'dart:typed_data';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'core/color_mapper.dart';
 import 'core/convert_isolate.dart';
 import 'core/palette.dart';
 import 'core/palette_repository.dart';
@@ -181,6 +182,12 @@ class ConversionState {
   /// 每格平均色（原图对比视图用）。
   final List<int> avgColors;
 
+  /// 每格是否为背景格（背景蒙层预览用）。
+  final List<bool> backgroundCells;
+
+  /// 诊断数据。
+  final ConvertDiagnostics? diagnostics;
+
   /// 错误信息。
   final String? error;
 
@@ -194,6 +201,8 @@ class ConversionState {
     this.options = const ConvertOptions(gridSize: 81),
     this.pattern,
     this.avgColors = const [],
+    this.backgroundCells = const [],
+    this.diagnostics,
     this.error,
     this.editedGrid,
   });
@@ -205,6 +214,8 @@ class ConversionState {
     ConvertOptions? options,
     Pattern? pattern,
     List<int>? avgColors,
+    List<bool>? backgroundCells,
+    ConvertDiagnostics? diagnostics,
     String? error,
     List<int>? editedGrid,
     bool clearPattern = false,
@@ -217,6 +228,8 @@ class ConversionState {
       options: options ?? this.options,
       pattern: clearPattern ? null : (pattern ?? this.pattern),
       avgColors: avgColors ?? this.avgColors,
+      backgroundCells: backgroundCells ?? this.backgroundCells,
+      diagnostics: diagnostics ?? this.diagnostics,
       error: error ?? this.error,
       editedGrid: clearEditedGrid
           ? null
@@ -245,18 +258,13 @@ class ConversionNotifier extends Notifier<ConversionState> {
     state = ConversionState(imageBytes: bytes, board: board, options: opts);
   }
 
-  /// 设置板型（同步更新网格尺寸与掩码）。
+  /// 设置板型（同步更新网格尺寸与掩码，保留其余转换参数）。
   void setBoard(BoardPreset board) {
     state = state.copyWith(
       board: board,
-      options: ConvertOptions(
+      options: state.options.copyWith(
         gridSize: board.size,
-        maxColors: state.options.maxColors,
-        dither: state.options.dither,
-        removeBackground: state.options.removeBackground,
-        minBlockSize: state.options.minBlockSize,
         maskShape: board.shape == BoardShape.circle ? 'circle' : null,
-        restrictToOwned: state.options.restrictToOwned,
       ),
       clearPattern: true,
       clearEditedGrid: true,
@@ -297,6 +305,8 @@ class ConversionNotifier extends Notifier<ConversionState> {
       status: ConversionStatus.done,
       pattern: response.pattern,
       avgColors: response.avgColors,
+      backgroundCells: response.backgroundCells,
+      diagnostics: response.diagnostics,
     );
   }
 
@@ -313,6 +323,7 @@ class ConversionNotifier extends Notifier<ConversionState> {
     state = state.copyWith(
       pattern: Pattern(
         size: pattern.size,
+        height: pattern.height,
         grid: List<int>.of(edited),
         paletteId: pattern.paletteId,
         bom: _buildBom(edited, palette),
@@ -321,16 +332,33 @@ class ConversionNotifier extends Notifier<ConversionState> {
     );
   }
 
+  /// 直接应用新网格（色号排除/恢复等场景），重算 BOM。
+  void applyGrid(List<int> grid, Palette palette) {
+    final pattern = state.pattern;
+    if (pattern == null) return;
+    state = state.copyWith(
+      pattern: Pattern(
+        size: pattern.size,
+        height: pattern.height,
+        grid: List<int>.of(grid),
+        paletteId: pattern.paletteId,
+        bom: _buildBom(grid, palette),
+      ),
+    );
+  }
+
   /// 打开已保存作品：把作品图纸载入转换状态，供预览/编辑/跟做/导出。
   void openProject(Project project) {
     final p = project.pattern;
     final opts = Project.optionsFrom(project.convertParams);
-    final isCircle = opts.maskShape == 'circle';
+    final isCircle = opts.maskShape == 'circle' && p.height == p.size;
     state = ConversionState(
       status: ConversionStatus.done,
       board: BoardPreset(
         id: isCircle && p.size == 29 ? '29c' : '${p.size}',
-        label: isCircle && p.size == 29 ? '29 圆形' : '${p.size}×${p.size}',
+        label: isCircle && p.size == 29
+            ? '29 圆形'
+            : '${p.size}×${p.height}',
         size: p.size,
         shape: isCircle ? BoardShape.circle : BoardShape.square,
       ),
@@ -378,15 +406,23 @@ BoardPreset _boardFromSettings(AppSettings s) {
   return const BoardPreset(id: '81', label: '81×81', size: 81);
 }
 
-/// 从用户设置还原转换参数。
+/// 从用户设置还原转换参数（按预设初始化，叠加用户偏好）。
 ConvertOptions _optionsFromSettings(AppSettings s, BoardPreset board) {
-  return ConvertOptions(
+  final maskShape = board.shape == BoardShape.circle ? 'circle' : null;
+  final base = ConvertPresets.fromId(
+    s.presetId,
     gridSize: board.size,
+    maskShape: maskShape,
+  );
+  // 用户手动微调覆盖预设默认值（偏好记忆）
+  return base.copyWith(
     maxColors: s.maxColors,
     dither: s.dither,
     removeBackground: s.removeBackground,
-    minBlockSize: 2,
-    maskShape: board.shape == BoardShape.circle ? 'circle' : null,
+    colorDistanceMode: ColorDistance.values.firstWhere(
+      (v) => v.name == s.colorDistanceMode,
+      orElse: () => ColorDistance.oklab,
+    ),
   );
 }
 

@@ -1,4 +1,4 @@
-/// 首页：选择图片 / 拍照 + 最近作品 + 首次启动新手引导。
+/// 首页：选择图片 / 拍照 + 最近作品 + 首次启动新手引导（苹果官网风格）。
 library;
 
 import 'dart:typed_data';
@@ -175,112 +175,130 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
       fit: StackFit.expand,
       children: [
         Scaffold(
-      appBar: AppBar(
-        title: const Text('豆图 · 拼豆图纸转化器'),
-        actions: [
-          IconButton(
-            key: _keyInventory,
-            tooltip: '我的豆子库存',
-            icon: const Icon(Icons.inventory_2_rounded),
-            onPressed: () => context.push(Routes.inventory),
+          appBar: AppBar(
+            title: const Text('豆图 · 拼豆图纸转化器'),
+            actions: [
+              IconButton(
+                key: _keyInventory,
+                tooltip: '我的豆子库存',
+                icon: const Icon(Icons.inventory_2_rounded),
+                onPressed: () => context.push(Routes.inventory),
+              ),
+              IconButton(
+                key: _keyHistory,
+                tooltip: '历史记录',
+                icon: const Icon(Icons.history_rounded),
+                onPressed: () => context.push(Routes.history),
+              ),
+              IconButton(
+                key: _keySettings,
+                tooltip: '设置',
+                icon: const Icon(Icons.settings_rounded),
+                onPressed: () => context.push(Routes.settings),
+              ),
+            ],
           ),
-          IconButton(
-            key: _keyHistory,
-            tooltip: '历史记录',
-            icon: const Icon(Icons.history_rounded),
-            onPressed: () => context.push(Routes.history),
-          ),
-          IconButton(
-            key: _keySettings,
-            tooltip: '设置',
-            icon: const Icon(Icons.settings_rounded),
-            onPressed: () => context.push(Routes.settings),
-          ),
-        ],
-      ),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(20),
-          children: [
-            const SizedBox(height: 24),
-            Text('🧸 把照片变成拼豆图纸', style: kDisplayTextStyle),
-            const SizedBox(height: 8),
-            const Text(
-              '选一张图，豆图帮你算出每个格子的色号',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
-            ),
-            const SizedBox(height: 32),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  children: [
-                    _bigButton(
-                      key: _keyPickGallery,
-                      emoji: '🖼️',
-                      label: '从相册选图',
-                      color: AppColors.primary,
-                      onTap: () => _pick(ref, context, ImageSource.gallery),
-                    ),
-                    const SizedBox(height: 14),
-                    _bigButton(
-                      key: _keyPickCamera,
-                      emoji: '📷',
-                      label: '拍一张',
-                      color: AppColors.secondary,
-                      onTap: () => _pick(ref, context, ImageSource.camera),
-                    ),
+          body: SafeArea(
+            child: ListView(
+              padding: const EdgeInsets.all(20),
+              children: [
+                const SizedBox(height: 28),
+                // 苹果式 hero 大标题
+                Text('把照片变成拼豆图纸', style: kDisplayTextStyle),
+                const SizedBox(height: 10),
+                const Text(
+                  '选一张图，豆图帮你算出每个格子的色号',
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 16,
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 36),
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: AppColors.sectionBg,
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  child: Column(
+                    children: [
+                      _bigButton(
+                        key: _keyPickGallery,
+                        emoji: '🖼️',
+                        label: '从相册选图',
+                        filled: true,
+                        onTap: () => _pick(ref, context, ImageSource.gallery),
+                      ),
+                      const SizedBox(height: 12),
+                      _bigButton(
+                        key: _keyPickCamera,
+                        emoji: '📷',
+                        label: '拍一张',
+                        filled: false,
+                        onTap: () => _pick(ref, context, ImageSource.camera),
+                      ),
+                    ],
+                  ),
+                ),
+                // 可选：选图后自动框出主体（默认关）。
+                SwitchListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                  dense: true,
+                  title: const Text('✨ 选图后自动框出主体',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.textMain,
+                      )),
+                  subtitle: const Text('可选步骤：进裁剪页时自动框选主体',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                      )),
+                  value: settings?.autoFrameSubject ?? false,
+                  onChanged: (v) {
+                    final s = settings;
+                    if (s == null) return;
+                    ref
+                        .read(settingsProvider.notifier)
+                        .saveSettings(s.copyWith(autoFrameSubject: v));
+                  },
+                ),
+                const SizedBox(height: 36),
+                Row(
+                  key: _keyRecent,
+                  children: const [
+                    Text('🕘 最近作品',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 20,
+                          color: AppColors.textMain,
+                        )),
                   ],
                 ),
-              ),
-            ),
-            // 可选：选图后自动框出主体（默认关）。
-            SwitchListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-              dense: true,
-              title: const Text('✨ 选图后自动框出主体',
-                  style: TextStyle(fontSize: 14)),
-              subtitle: const Text('可选步骤：进裁剪页时自动框选主体',
-                  style: TextStyle(fontSize: 11)),
-              value: settings?.autoFrameSubject ?? false,
-              onChanged: (v) {
-                final s = settings;
-                if (s == null) return;
-                ref
-                    .read(settingsProvider.notifier)
-                    .saveSettings(s.copyWith(autoFrameSubject: v));
-              },
-            ),
-            const SizedBox(height: 32),
-            Row(
-              key: _keyRecent,
-              children: const [
-                Text('🕘 最近作品',
-                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                const SizedBox(height: 14),
+                history.when(
+                  loading: () => const Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                  error: (e, _) => CuteEmptyState(
+                    emoji: '😵',
+                    title: '读取失败',
+                    subtitle: e.toString(),
+                  ),
+                  data: (projects) => projects.isEmpty
+                      ? const CuteEmptyState(
+                          emoji: '🍬',
+                          title: '还没有作品',
+                          subtitle: '选一张图片开始你的第一幅拼豆图纸吧',
+                        )
+                      : _recentList(context, ref, projects),
+                ),
               ],
             ),
-            const SizedBox(height: 12),
-            history.when(
-              loading: () => const Padding(
-                padding: EdgeInsets.all(24),
-                child: Center(child: CircularProgressIndicator()),
-              ),
-              error: (e, _) => CuteEmptyState(
-                emoji: '😵',
-                title: '读取失败',
-                subtitle: e.toString(),
-              ),
-              data: (projects) => projects.isEmpty
-                  ? const CuteEmptyState(
-                      emoji: '🍬',
-                      title: '还没有作品',
-                      subtitle: '选一张图片开始你的第一幅拼豆图纸吧',
-                    )
-                  : _recentList(context, ref, projects),
-            ),
-          ],
-        ),
-        ),
+          ),
         ),
         if (_tourVisible)
           Positioned.fill(
@@ -294,28 +312,38 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
     Key? key,
     required String emoji,
     required String label,
-    required Color color,
+    required bool filled,
     required VoidCallback onTap,
   }) {
     return SizedBox(
       width: double.infinity,
-      child: ElevatedButton.icon(
-        key: key,
-        onPressed: onTap,
-        style: ElevatedButton.styleFrom(backgroundColor: color),
-        icon: Text(emoji, style: const TextStyle(fontSize: 20)),
-        label: Text(label),
-      ),
+      child: filled
+          ? ElevatedButton.icon(
+              key: key,
+              onPressed: onTap,
+              icon: Text(emoji, style: const TextStyle(fontSize: 19)),
+              label: Text(label),
+            )
+          : ElevatedButton.icon(
+              key: key,
+              onPressed: onTap,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFE8F1FC),
+                foregroundColor: AppColors.primary,
+              ),
+              icon: Text(emoji, style: const TextStyle(fontSize: 19)),
+              label: Text(label),
+            ),
     );
   }
 
   Widget _recentList(BuildContext context, WidgetRef ref, List projects) {
     return SizedBox(
-      height: 150,
+      height: 160,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: projects.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 10),
+        separatorBuilder: (_, __) => const SizedBox(width: 12),
         itemBuilder: (context, i) {
           final p = projects[i];
           return _recentCard(context, ref, p);
@@ -331,12 +359,19 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
         context.push(Routes.preview, extra: project);
       },
       child: Container(
-        width: 130,
+        width: 136,
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
           color: AppColors.card,
           borderRadius: BorderRadius.circular(AppRadius.card),
           border: Border.all(color: AppColors.border),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x0A000000),
+              blurRadius: 12,
+              offset: Offset(0, 4),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -344,6 +379,7 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
             Expanded(
               child: _MiniPattern(
                 size: project.pattern.size,
+                height: project.pattern.height,
                 grid: project.pattern.grid,
                 paletteId: project.pattern.paletteId,
               ),
@@ -353,10 +389,14 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
               project.name,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+                color: AppColors.textMain,
+              ),
             ),
             Text(
-              '${project.pattern.size}×${project.pattern.size} · '
+              '${project.pattern.size}×${project.pattern.height} · '
               '${project.pattern.colorCount} 色',
               style: const TextStyle(
                 fontSize: 11,
@@ -373,6 +413,10 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
 /// 缩略图（迷你网格）。
 class _MiniPattern extends ConsumerWidget {
   final int size;
+
+  /// 网格高度（非正方形；默认 == size）。
+  final int height;
+
   final List<int> grid;
   final String paletteId;
 
@@ -380,7 +424,8 @@ class _MiniPattern extends ConsumerWidget {
     required this.size,
     required this.grid,
     required this.paletteId,
-  });
+    int? height,
+  }) : height = height ?? size;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -394,7 +439,12 @@ class _MiniPattern extends ConsumerWidget {
           for (final e in palette.entries) (e.r << 16) | (e.g << 8) | e.b,
         ];
         return CustomPaint(
-          painter: _MiniPainter(grid: grid, size: size, colors: colors),
+          painter: _MiniPainter(
+            grid: grid,
+            size: size,
+            height: height,
+            colors: colors,
+          ),
           size: Size.infinite,
         );
       },
@@ -405,15 +455,21 @@ class _MiniPattern extends ConsumerWidget {
 class _MiniPainter extends CustomPainter {
   final List<int> grid;
   final int size;
+  final int height;
   final List<int> colors;
 
-  _MiniPainter({required this.grid, required this.size, required this.colors});
+  _MiniPainter({
+    required this.grid,
+    required this.size,
+    required this.height,
+    required this.colors,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
     final cell = size.width / this.size;
     final paint = Paint();
-    for (var y = 0; y < this.size; y++) {
+    for (var y = 0; y < height; y++) {
       for (var x = 0; x < this.size; x++) {
         final idx = grid[y * this.size + x];
         if (idx < 0 || idx >= colors.length) continue;
@@ -428,5 +484,8 @@ class _MiniPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_MiniPainter old) =>
-      old.grid != grid || old.size != size || old.colors != colors;
+      old.grid != grid ||
+      old.size != size ||
+      old.height != height ||
+      old.colors != colors;
 }

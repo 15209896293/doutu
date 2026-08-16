@@ -72,7 +72,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 children: [
                   const Text('偏好',
                       style: TextStyle(
-                          fontWeight: FontWeight.w700, fontSize: 16)),
+                          fontWeight: FontWeight.w700, fontSize: 19)),
                   const SizedBox(height: 12),
                   Card(
                     child: Column(
@@ -136,7 +136,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   const SizedBox(height: 24),
                   const Text('引导',
                       style: TextStyle(
-                          fontWeight: FontWeight.w700, fontSize: 16)),
+                          fontWeight: FontWeight.w700, fontSize: 19)),
                   const SizedBox(height: 12),
                   Card(
                     child: ListTile(
@@ -152,7 +152,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   const SizedBox(height: 24),
                   const Text('关于',
                       style: TextStyle(
-                          fontWeight: FontWeight.w700, fontSize: 16)),
+                          fontWeight: FontWeight.w700, fontSize: 19)),
                   const SizedBox(height: 12),
                   Card(
                     key: _keyAbout,

@@ -9,6 +9,7 @@
 /// 缩放/平移由 InteractiveViewer 的变换矩阵处理，不重绘像素。
 library;
 
+import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
@@ -30,6 +31,9 @@ class PatternCanvasData {
   /// 色号索引矩阵（-1 = 透明）。
   final List<int> grid;
   final int size;
+
+  /// 网格高度（非正方形图纸；默认 == size）。
+  final int height;
 
   /// 色号 → RGB（palette 色表，供色块上色）。
   final List<int> colors;
@@ -54,11 +58,12 @@ class PatternCanvasData {
     required this.size,
     required this.colors,
     required this.codes,
+    int? height,
     this.showCodes = false,
     this.mode = GridRenderMode.flat,
-    this.gridLineColor = const Color(0x14FF6B9D),
+    this.gridLineColor = const Color(0x140071E3),
     this.background = Colors.white,
-  });
+  }) : height = height ?? size;
 }
 
 /// 图纸画布（含缓存与缩放）。
@@ -80,7 +85,7 @@ class PatternCanvas extends StatefulWidget {
     this.minScale = 0.5,
     this.maxScale = 8,
     this.highlightCells,
-    this.highlightColor = const Color(0xFFFFD93D),
+    this.highlightColor = const Color(0xFF0071E3),
     this.outlineCells,
   });
 
@@ -105,21 +110,20 @@ class _PatternCanvasState extends State<PatternCanvas> {
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder);
     final n = data.size;
+    final m = data.height;
     final cell = 24.0; // 离屏基准格宽
-    final total = n * cell;
+    final totalW = n * cell;
+    final totalH = m * cell;
 
     // 背景
     canvas.drawRect(
-      Rect.fromLTWH(0, 0, total, total),
+      Rect.fromLTWH(0, 0, totalW, totalH),
       Paint()..color = data.background,
     );
 
     final fillPaint = Paint();
-    final gridPaint = Paint()
-      ..color = data.gridLineColor
-      ..strokeWidth = 0.5;
 
-    for (var y = 0; y < n; y++) {
+    for (var y = 0; y < m; y++) {
       for (var x = 0; x < n; x++) {
         final idx = data.grid[y * n + x];
         final rect = Rect.fromLTWH(x * cell, y * cell, cell, cell);
@@ -139,17 +143,29 @@ class _PatternCanvasState extends State<PatternCanvas> {
     }
 
     if (data.mode == GridRenderMode.flat) {
-      // 网格线
+      // 网格线：细线 + 每 5 格中粗 + 每 10 格大粗（辅助定位，苹果蓝）
+      final fine = Paint()
+        ..color = data.gridLineColor
+        ..strokeWidth = 0.5;
+      final mid = Paint()
+        ..color = const Color(0x330071E3)
+        ..strokeWidth = 1.0;
+      final bold = Paint()
+        ..color = const Color(0x660071E3)
+        ..strokeWidth = 1.8;
+      Paint line(int i) => i % 10 == 0 ? bold : (i % 5 == 0 ? mid : fine);
       for (var i = 0; i <= n; i++) {
         canvas.drawLine(
           Offset(i * cell, 0),
-          Offset(i * cell, total),
-          gridPaint,
+          Offset(i * cell, totalH),
+          line(i),
         );
+      }
+      for (var i = 0; i <= m; i++) {
         canvas.drawLine(
           Offset(0, i * cell),
-          Offset(total, i * cell),
-          gridPaint,
+          Offset(totalW, i * cell),
+          line(i),
         );
       }
     }
@@ -160,7 +176,7 @@ class _PatternCanvasState extends State<PatternCanvas> {
         textDirection: TextDirection.ltr,
         textAlign: TextAlign.center,
       );
-      for (var y = 0; y < n; y++) {
+      for (var y = 0; y < m; y++) {
         for (var x = 0; x < n; x++) {
           final idx = data.grid[y * n + x];
           if (idx < 0 || idx >= data.codes.length) continue;
@@ -183,7 +199,7 @@ class _PatternCanvasState extends State<PatternCanvas> {
     }
 
     final picture = recorder.endRecording();
-    return picture.toImage(n * cell.toInt(), n * cell.toInt());
+    return picture.toImage(n * cell.toInt(), m * cell.toInt());
   }
 
   void _drawBead(Canvas canvas, Rect rect, Color color) {
@@ -238,7 +254,7 @@ class _PatternCanvasState extends State<PatternCanvas> {
 /// 根据背景亮度选对比文字色。
 Color _contrastText(Color bg) {
   final luminance = bg.computeLuminance();
-  return luminance > 0.5 ? const Color(0xFF3D2E2A) : Colors.white;
+  return luminance > 0.5 ? const Color(0xFF1D1D1F) : Colors.white;
 }
 
 /// 构建渲染数据（从 Pattern + Palette）。
@@ -252,6 +268,7 @@ PatternCanvasData canvasDataFor(
   return PatternCanvasData(
     grid: pattern.grid,
     size: pattern.size,
+    height: pattern.height,
     colors: paletteColors,
     codes: codes,
     showCodes: showCodes,
@@ -268,16 +285,20 @@ Future<Uint8List> renderGridPng(
   final recorder = ui.PictureRecorder();
   final canvas = Canvas(recorder);
   final n = data.size;
-  final cell = outputPixels / n;
-  final total = outputPixels.toDouble();
+  final m = data.height;
+  // 长边 = outputPixels，短边按比例
+  final longSide = math.max(n, m).toDouble();
+  final cell = outputPixels / longSide;
+  final totalW = n * cell;
+  final totalH = m * cell;
 
   canvas.drawRect(
-    Rect.fromLTWH(0, 0, total, total),
+    Rect.fromLTWH(0, 0, totalW, totalH),
     Paint()..color = data.background,
   );
 
   final paint = Paint();
-  for (var y = 0; y < n; y++) {
+  for (var y = 0; y < m; y++) {
     for (var x = 0; x < n; x++) {
       final idx = data.grid[y * n + x];
       if (idx < 0) continue;
@@ -289,8 +310,34 @@ Future<Uint8List> renderGridPng(
     }
   }
 
+  // 分级网格线（细 + 每 5 格中粗 + 每 10 格大粗）
+  final fine = Paint()
+    ..color = const Color(0x14000000)
+    ..strokeWidth = 0.5;
+  final mid = Paint()
+    ..color = const Color(0x33000000)
+    ..strokeWidth = 1.0;
+  final bold = Paint()
+    ..color = const Color(0x66000000)
+    ..strokeWidth = 1.8;
+  Paint line(int i) => i % 10 == 0 ? bold : (i % 5 == 0 ? mid : fine);
+  for (var i = 0; i <= n; i++) {
+    canvas.drawLine(
+      Offset(i * cell, 0),
+      Offset(i * cell, totalH),
+      line(i),
+    );
+  }
+  for (var i = 0; i <= m; i++) {
+    canvas.drawLine(
+      Offset(0, i * cell),
+      Offset(totalW, i * cell),
+      line(i),
+    );
+  }
+
   if (withCodes) {
-    for (var y = 0; y < n; y++) {
+    for (var y = 0; y < m; y++) {
       for (var x = 0; x < n; x++) {
         final idx = data.grid[y * n + x];
         if (idx < 0 || idx >= data.codes.length) continue;
@@ -317,7 +364,8 @@ Future<Uint8List> renderGridPng(
   }
 
   final picture = recorder.endRecording();
-  final image = await picture.toImage(outputPixels, outputPixels);
+  final image =
+      await picture.toImage(totalW.round(), totalH.round());
   final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
   return bytes!.buffer.asUint8List();
 }

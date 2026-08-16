@@ -45,6 +45,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
     final data = PatternCanvasData(
       grid: pattern.grid,
       size: pattern.size,
+      height: pattern.height,
       colors: colors,
       codes: codes,
       showCodes: true,
@@ -73,7 +74,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
                       child: Column(
                         children: [
                           AspectRatio(
-                            aspectRatio: 1,
+                            aspectRatio: pattern.size / pattern.height,
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(10),
                               child: PatternCanvas(
@@ -128,7 +129,6 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
                   ElevatedButton(
                     onPressed: () => _saveProject(context, pattern),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.secondary,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
                     child: const Text('💾 保存到作品库',
@@ -176,7 +176,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
         withCodes: _withCodes,
       );
       await shareOrDownloadBytes(
-        fileName: '豆图_${pattern.size}x${pattern.size}.png',
+        fileName: '豆图_${pattern.size}x${pattern.height}.png',
         mimeType: 'image/png',
         bytes: bytes,
         subject: '豆图拼豆图纸',
@@ -220,7 +220,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
             pw.Header(
               level: 0,
               child: pw.Text(
-                '豆图 · 拼豆图纸 ${pattern.size}×${pattern.size}',
+                '豆图 · 拼豆图纸 ${pattern.size}×${pattern.height}',
                 style: pw.TextStyle(
                   fontSize: 20,
                   fontWeight: pw.FontWeight.bold,
@@ -263,7 +263,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
 
       final bytes = await doc.save();
       await shareOrDownloadBytes(
-        fileName: '豆图_${pattern.size}x${pattern.size}.pdf',
+        fileName: '豆图_${pattern.size}x${pattern.height}.pdf',
         mimeType: 'application/pdf',
         bytes: bytes,
         subject: '豆图拼豆图纸 PDF',
@@ -293,7 +293,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
         withCodes: _withCodes,
       );
       await shareOrDownloadBytes(
-        fileName: '豆图_${pattern.size}x${pattern.size}.png',
+        fileName: '豆图_${pattern.size}x${pattern.height}.png',
         mimeType: 'image/png',
         bytes: bytes,
         subject: '豆图拼豆图纸',

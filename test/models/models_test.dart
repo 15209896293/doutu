@@ -91,8 +91,10 @@ void main() {
       expect(s.tourSeen, false);
       expect(s.cropTourSeen, false);
       expect(s.autoFrameSubject, false);
-      expect(s.dither, true);
-      expect(s.maxColors, 0);
+      expect(s.dither, false);
+      expect(s.maxColors, 10);
+      expect(s.presetId, 'standard');
+      expect(s.colorDistanceMode, 'oklab');
     });
 
     test('JSON 往返', () {

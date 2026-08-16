@@ -1,11 +1,17 @@
-/// 后处理：连通域杂色合并 + 背景 flood fill 移除。
+/// 后处理：连通域杂色合并 + 背景 flood fill 移除 + 空间正则化 + 多数表决清理。
 ///
 /// 输入：色号索引矩阵（N×N，行优先）。
 /// 输出：去杂矩阵（小连通块并入相邻主色）+ 背景透明标记（-1）。
 library;
 
+import 'dart:math' as math;
+
 import 'ciede2000.dart';
+import 'color_mapper.dart';
 import 'color_space.dart';
+import 'oklab.dart';
+import 'palette.dart';
+import 'sampler.dart';
 
 /// 后处理参数。
 class PostProcessOptions {
@@ -224,4 +230,259 @@ List<int> _removeBackground(
     if (background[i]) out[i] = -1;
   }
   return out;
+}
+
+// ---------------------------------------------------------------------------
+// 空间正则化（边缘保护平滑） + 多数表决清理
+// ---------------------------------------------------------------------------
+
+/// 两个 RGB 的感知色差（按 [distance] 模式）。
+double colorDistanceRgb(int a, int b, ColorDistance distance) {
+  final ar = (a >> 16) & 0xFF;
+  final ag = (a >> 8) & 0xFF;
+  final ab = a & 0xFF;
+  final br = (b >> 16) & 0xFF;
+  final bg = (b >> 8) & 0xFF;
+  final bb = b & 0xFF;
+  switch (distance) {
+    case ColorDistance.oklab:
+      return oklabDistance(srgbToOklab(ar, ag, ab), srgbToOklab(br, bg, bb));
+    case ColorDistance.ciede2000:
+      return ciede2000(rgbToLab(ar, ag, ab), rgbToLab(br, bg, bb));
+  }
+}
+
+/// 空间正则化结果。
+class RegularizeResult {
+  final List<int> grid;
+
+  /// 变更格数（供诊断展示）。
+  final int changed;
+
+  RegularizeResult({required this.grid, required this.changed});
+}
+
+/// 边缘保护的空间正则化（参考 pixel-beads `ft()`）：
+/// 对每个非背景、非轮廓格，评估候选色 = 自身 + 四邻域色号；
+/// 代价 = 该格原始采样色到候选色的色差 + smoothness × Σ(exp(-邻域色差/edgeSigma))，
+/// 取代价最小的候选；迭代 [iterations] 次。轮廓格不参与 → 轮廓不被抹糊。
+/// [height] 支持非正方形网格（默认 == size）。
+RegularizeResult regularizeGrid(
+  List<int> grid,
+  List<SampleCell?> cells,
+  int size,
+  Palette palette, {
+  int? height,
+  required int iterations,
+  required double smoothness,
+  required double edgeSigma,
+  required ColorDistance distance,
+}) {
+  final n = size;
+  final m = height ?? n;
+  final paletteRgb = <int>[
+    for (final e in palette.entries) (e.r << 16) | (e.g << 8) | e.b,
+  ];
+  var cur = List<int>.of(grid);
+  var totalChanged = 0;
+
+  for (var it = 0; it < iterations; it++) {
+    final next = List<int>.of(cur);
+    var changed = 0;
+    for (var y = 0; y < m; y++) {
+      for (var x = 0; x < n; x++) {
+        final i = y * n + x;
+        final cell = cells[i];
+        if (cell == null || cell.isOutline) continue;
+        final self = cur[i];
+        final candidates = <int>{self};
+        final neighbors = <(int rgb, int colorId)>[];
+        for (final (dx, dy) in const [(1, 0), (-1, 0), (0, 1), (0, -1)]) {
+          final nx = x + dx;
+          final ny = y + dy;
+          if (nx < 0 || ny < 0 || nx >= n || ny >= m) continue;
+          final ni = ny * n + nx;
+          final nc = cells[ni];
+          if (nc == null) continue;
+          candidates.add(cur[ni]);
+          neighbors.add((nc.rgb, cur[ni]));
+        }
+        if (candidates.length == 1) continue;
+
+        var best = self;
+        var bestScore = double.infinity;
+        for (final k in candidates) {
+          final pk = paletteRgb[k];
+          var score = colorDistanceRgb(cell.rgb, pk, distance);
+          for (final (nbRgb, nbId) in neighbors) {
+            if (nbId == k) continue;
+            final d = colorDistanceRgb(cell.rgb, nbRgb, distance);
+            score += smoothness * math.exp(-d / math.max(0.01, edgeSigma));
+          }
+          if (score < bestScore) {
+            bestScore = score;
+            best = k;
+          }
+        }
+        if (best != self) {
+          next[i] = best;
+          changed++;
+        }
+      }
+    }
+    cur = next;
+    totalChanged += changed;
+    if (changed == 0) break;
+  }
+
+  return RegularizeResult(grid: cur, changed: totalChanged);
+}
+
+/// 8 邻域多数表决清理（参考 pixel-beads `ye()`）：
+/// 邻域中数量最多的色号 ≥ [minNeighbors] 且与自身不同 → 替换。
+/// 跳过背景格与轮廓格。[height] 支持非正方形网格（默认 == size）。
+List<int> cleanupByMajority(
+  List<int> grid,
+  List<SampleCell?> cells,
+  int size, {
+  int? height,
+  required int minNeighbors,
+}) {
+  final n = size;
+  final m = height ?? n;
+  final out = List<int>.of(grid);
+  for (var y = 0; y < m; y++) {
+    for (var x = 0; x < n; x++) {
+      final i = y * n + x;
+      final cell = cells[i];
+      if (cell == null || cell.isOutline) continue;
+      final counts = <int, int>{};
+      for (var dy = -1; dy <= 1; dy++) {
+        for (var dx = -1; dx <= 1; dx++) {
+          if (dx == 0 && dy == 0) continue;
+          final nx = x + dx;
+          final ny = y + dy;
+          if (nx < 0 || ny < 0 || nx >= n || ny >= m) continue;
+          final ni = ny * n + nx;
+          if (cells[ni] == null) continue;
+          counts[grid[ni]] = (counts[grid[ni]] ?? 0) + 1;
+        }
+      }
+      var majority = grid[i];
+      var maxCount = 0;
+      counts.forEach((k, v) {
+        if (v > maxCount) {
+          maxCount = v;
+          majority = k;
+        }
+      });
+      if (majority != grid[i] && maxCount >= minNeighbors) {
+        out[i] = majority;
+      }
+    }
+  }
+  return out;
+}
+
+/// 小区域合并：把面积 ≤ [minRegionSize] 的连通域替换为 8 邻域中出现最多的色号。
+/// 保证「输出不含小面积孤立杂色」的验收标准，同时不侵蚀更大的细节块。
+/// 迭代到收敛（替换可能产生新的小区域）；跳过背景格。
+/// [height] 支持非正方形网格（默认 == size）。
+List<int> removeSingleCellRegions(
+  List<int> grid,
+  List<SampleCell?> cells,
+  int size, {
+  int? height,
+  int minRegionSize = 1,
+}) {
+  var cur = List<int>.of(grid);
+  for (var pass = 0; pass < 16; pass++) {
+    final out = _removeSingleCellPass(cur, cells, size,
+        height: height, minRegionSize: minRegionSize);
+    if (out == cur) break;
+    cur = out;
+  }
+  return cur;
+}
+
+List<int> _removeSingleCellPass(
+  List<int> grid,
+  List<SampleCell?> cells,
+  int size, {
+  int? height,
+  int minRegionSize = 1,
+}) {
+  final n = size;
+  final m = height ?? n;
+  // 连通域标记（四邻域）
+  final labels = List<int>.filled(grid.length, 0);
+  final area = <int, int>{};
+  var nextLabel = 1;
+  for (var y = 0; y < m; y++) {
+    for (var x = 0; x < n; x++) {
+      final i = y * n + x;
+      if (labels[i] != 0 || grid[i] < 0) continue;
+      final color = grid[i];
+      final queue = <int>[i];
+      labels[i] = nextLabel;
+      var head = 0;
+      var count = 0;
+      while (head < queue.length) {
+        final cur = queue[head++];
+        count++;
+        final cx = cur % n;
+        final cy = cur ~/ n;
+        for (final (dx, dy) in const [(1, 0), (-1, 0), (0, 1), (0, -1)]) {
+          final nx = cx + dx;
+          final ny = cy + dy;
+          if (nx < 0 || ny < 0 || nx >= n || ny >= m) continue;
+          final ni = ny * n + nx;
+          if (labels[ni] == 0 && grid[ni] == color) {
+            labels[ni] = nextLabel;
+            queue.add(ni);
+          }
+        }
+      }
+      area[nextLabel] = count;
+      nextLabel++;
+    }
+  }
+
+  var changed = false;
+  final out = List<int>.of(grid);
+  for (var y = 0; y < m; y++) {
+    for (var x = 0; x < n; x++) {
+      final i = y * n + x;
+      if (cells[i] == null) continue;
+      final a = area[labels[i]];
+      if (a == null || a > minRegionSize) continue;
+      // 8 邻域众数（排除背景格）
+      final counts = <int, int>{};
+      for (var dy = -1; dy <= 1; dy++) {
+        for (var dx = -1; dx <= 1; dx++) {
+          if (dx == 0 && dy == 0) continue;
+          final nx = x + dx;
+          final ny = y + dy;
+          if (nx < 0 || ny < 0 || nx >= n || ny >= m) continue;
+          final ni = ny * n + nx;
+          if (cells[ni] == null || grid[ni] < 0) continue;
+          counts[grid[ni]] = (counts[grid[ni]] ?? 0) + 1;
+        }
+      }
+      if (counts.isEmpty) continue;
+      var best = 0;
+      var bestCount = 0;
+      counts.forEach((k, v) {
+        if (v > bestCount) {
+          bestCount = v;
+          best = k;
+        }
+      });
+      if (best != grid[i]) {
+        out[i] = best;
+        changed = true;
+      }
+    }
+  }
+  return changed ? out : grid;
 }

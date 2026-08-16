@@ -7,6 +7,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../app.dart';
 import '../../app_providers.dart';
+import '../../core/color_mapper.dart';
+import '../../core/pattern_converter.dart';
 import '../../models/inventory.dart';
 import '../../models/pattern.dart';
 import '../../shared/theme/app_theme.dart';
@@ -26,6 +28,12 @@ class _PreviewScreenState extends ConsumerState<PreviewScreen> {
   PreviewView _view = PreviewView.grid;
   bool _showCodes = true;
   bool _showBom = true;
+
+  /// 已排除的色号（点掉后自动重映射；空 = 恢复原图）。
+  final Set<String> _excludedCodes = {};
+
+  /// 首次排除前快照的原始网格（恢复用）。
+  List<int>? _originalGrid;
 
   @override
   Widget build(BuildContext context) {
@@ -56,7 +64,7 @@ class _PreviewScreenState extends ConsumerState<PreviewScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('图纸预览 · ${pattern.size}×${pattern.size}'),
+        title: Text('图纸预览 · ${pattern.size}×${pattern.height}'),
         leading: IconButton(
           tooltip: '返回上一步',
           icon: const Icon(Icons.arrow_back_rounded),
@@ -85,14 +93,136 @@ class _PreviewScreenState extends ConsumerState<PreviewScreen> {
       body: Column(
         children: [
           _viewSelector(),
+          _diagnosticsBanner(conv.diagnostics),
           _inventoryBanner(missing, hasInventory),
           Expanded(child: _buildView(pattern, colors, codes, conv)),
           if (_showBom)
-            BomLegend(bom: pattern.bom, totalBeads: pattern.totalBeads),
+            BomLegend(
+              bom: pattern.bom,
+              totalBeads: pattern.totalBeads,
+              excludedCodes: _excludedCodes,
+              onToggleExclude: _toggleExclude,
+            ),
         ],
       ),
       bottomNavigationBar: _bottomBar(pattern),
     );
+  }
+
+  /// 诊断信息横幅（背景置信度 / 平均映射色差 / 杂色提示）。
+  Widget _diagnosticsBanner(ConvertDiagnostics? d) {
+    if (d == null) return const SizedBox.shrink();
+    final parts = <String>[];
+    if (d.backgroundFallback) {
+      parts.add('⚠️ 背景与主体颜色相近，已保留原图');
+      parts.add('可返回关闭「自动去除背景」或裁剪后再试');
+    } else if (d.backgroundDetected) {
+      parts.add('🟢 背景已移除（置信度 ${(d.backgroundConfidence * 100).round()}%）');
+    } else {
+      parts.add('⚪ 未检测到背景');
+    }
+    parts.add('ΔE ${d.meanMappingDistance.toStringAsFixed(1)}');
+    if (d.rareColorCount > 0 || d.singleCellRegionCount > 0) {
+      parts.add(
+        '杂色 ${d.rareColorCount} 色 / 孤立单格 ${d.singleCellRegionCount}',
+      );
+    }
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.fromLTRB(16, 2, 16, 2),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: d.backgroundFallback
+            ? AppColors.accentOrange.withValues(alpha: 0.12)
+            : AppColors.card,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: d.backgroundFallback
+              ? AppColors.accentOrange
+              : AppColors.border,
+        ),
+      ),
+      child: Wrap(
+        spacing: 10,
+        runSpacing: 2,
+        children: [
+          for (final p in parts)
+            Text(
+              p,
+              style: TextStyle(
+                fontSize: 11,
+                color: d.backgroundFallback
+                    ? AppColors.accentOrange
+                    : AppColors.textSecondary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// 色号排除/恢复：排除后重映射到「已存在且未排除」的最近色。
+  void _toggleExclude(String code) {
+    final conv = ref.read(conversionProvider);
+    final palette = ref.read(paletteForPatternProvider).valueOrNull;
+    final pattern = conv.pattern;
+    if (palette == null || pattern == null) return;
+
+    setState(() {
+      if (!_excludedCodes.add(code)) {
+        _excludedCodes.remove(code);
+      }
+      if (_excludedCodes.isEmpty) {
+        // 全部恢复 → 还原原始网格
+        if (_originalGrid != null) {
+          ref
+              .read(conversionProvider.notifier)
+              .applyGrid(_originalGrid!, palette);
+        }
+        _originalGrid = null;
+        return;
+      }
+      // 首次排除：快照原始网格
+      _originalGrid ??= List<int>.of(pattern.grid);
+
+      final excludeIdx = <int>{
+        for (final c in _excludedCodes)
+          for (var i = 0; i < palette.entries.length; i++)
+            if (palette.entries[i].code == c) i,
+      };
+      // 已存在色号（含被排除的）→ 重映射候选 = 已存在 - 已排除
+      final used = <int>{
+        for (final idx in pattern.grid)
+          if (idx >= 0) idx,
+      };
+      final keep = used.difference(excludeIdx).toList();
+      if (keep.isEmpty) {
+        _excludedCodes.remove(code);
+        return; // 全部排除会导致无色可用，阻止
+      }
+      final mapper = ColorMapper(
+        palette,
+        distance: conv.options.colorDistanceMode,
+        redDefense: false,
+      );
+      final keepMap = <int, int>{};
+      final newGrid = [
+        for (final idx in pattern.grid)
+          if (idx < 0)
+            -1
+          else if (keep.contains(idx))
+            idx
+          else
+            keepMap.putIfAbsent(idx, () {
+              final rgb = (palette.entries[idx].r << 16) |
+                  (palette.entries[idx].g << 8) |
+                  palette.entries[idx].b;
+              return mapper.nearestAmongRgb(rgb, keep, applyRedDefense: false);
+            }),
+      ];
+      ref.read(conversionProvider.notifier).applyGrid(newGrid, palette);
+    });
   }
 
   Widget _viewSelector() {
@@ -131,6 +261,7 @@ class _PreviewScreenState extends ConsumerState<PreviewScreen> {
     final canvasData = PatternCanvasData(
       grid: pattern.grid,
       size: pattern.size,
+      height: pattern.height,
       colors: colors,
       codes: codes,
       showCodes: _showCodes,
@@ -189,6 +320,10 @@ class _PreviewScreenState extends ConsumerState<PreviewScreen> {
                     child: _AvgColorsView(
                       avgColors: conv.avgColors,
                       size: pattern.size,
+                      height: pattern.height,
+                      backgroundCells: conv.backgroundCells.isEmpty
+                          ? null
+                          : conv.backgroundCells,
                     ),
                   ),
                 ),
@@ -213,6 +348,7 @@ class _PreviewScreenState extends ConsumerState<PreviewScreen> {
                     data: PatternCanvasData(
                       grid: pattern.grid,
                       size: pattern.size,
+                      height: pattern.height,
                       colors: colors,
                       codes: codes,
                     ),
@@ -238,7 +374,7 @@ class _PreviewScreenState extends ConsumerState<PreviewScreen> {
     } else if (missing.isEmpty) {
       emoji = '✅';
       text = '库存充足，可以开拼';
-      color = AppColors.secondary;
+      color = AppColors.success;
     } else {
       final total = missing.fold<int>(0, (s, m) => s + m.missing);
       emoji = '🛒';
@@ -370,17 +506,33 @@ class _PreviewScreenState extends ConsumerState<PreviewScreen> {
   }
 }
 
-/// 区域平均色重建图（对比视图左半）。
+/// 区域平均色重建图（对比视图左半；背景格画棋盘格蒙层）。
 class _AvgColorsView extends StatelessWidget {
   final List<int> avgColors;
   final int size;
 
-  const _AvgColorsView({required this.avgColors, required this.size});
+  /// 网格高度（非正方形；默认 == size）。
+  final int height;
+
+  /// 每格是否背景（null = 不显示蒙层）。
+  final List<bool>? backgroundCells;
+
+  const _AvgColorsView({
+    required this.avgColors,
+    required this.size,
+    int? height,
+    this.backgroundCells,
+  }) : height = height ?? size;
 
   @override
   Widget build(BuildContext context) {
     return CustomPaint(
-      painter: _AvgPainter(avgColors: avgColors, size: size),
+      painter: _AvgPainter(
+        avgColors: avgColors,
+        size: size,
+        height: height,
+        backgroundCells: backgroundCells,
+      ),
       size: Size.infinite,
     );
   }
@@ -389,18 +541,40 @@ class _AvgColorsView extends StatelessWidget {
 class _AvgPainter extends CustomPainter {
   final List<int> avgColors;
   final int size;
+  final int height;
+  final List<bool>? backgroundCells;
 
-  _AvgPainter({required this.avgColors, required this.size});
+  _AvgPainter({
+    required this.avgColors,
+    required this.size,
+    required this.height,
+    this.backgroundCells,
+  });
 
   @override
   void paint(Canvas canvas, Size canvasSize) {
     if (avgColors.isEmpty) return;
     final cell = canvasSize.width / size;
     final paint = Paint();
-    for (var y = 0; y < size; y++) {
+    for (var y = 0; y < height; y++) {
       for (var x = 0; x < size; x++) {
         final i = y * size + x;
         if (i >= avgColors.length) return;
+        final isBg = backgroundCells != null && i < backgroundCells!.length
+            ? backgroundCells![i]
+            : false;
+        if (isBg) {
+          // 棋盘格蒙层：将被移除的背景画成半透明棋盘（苹果蓝）
+          final dark = (x + y).isEven;
+          paint.color = dark
+              ? const Color(0x330071E3)
+              : const Color(0x110071E3);
+          canvas.drawRect(
+            Rect.fromLTWH(x * cell, y * cell, cell + 0.3, cell + 0.3),
+            paint,
+          );
+          continue;
+        }
         paint.color = Color(0xFF000000 | avgColors[i]);
         canvas.drawRect(
           Rect.fromLTWH(x * cell, y * cell, cell + 0.3, cell + 0.3),
@@ -412,5 +586,8 @@ class _AvgPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_AvgPainter old) =>
-      old.avgColors != avgColors || old.size != size;
+      old.avgColors != avgColors ||
+      old.size != size ||
+      old.height != height ||
+      old.backgroundCells != backgroundCells;
 }

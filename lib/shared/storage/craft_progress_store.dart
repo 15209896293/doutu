@@ -28,6 +28,7 @@ String craftFingerprint(Pattern pattern) {
     mix(c);
   }
   mixInt(pattern.size);
+  mixInt(pattern.height);
   for (final idx in pattern.grid) {
     mixInt(idx);
   }

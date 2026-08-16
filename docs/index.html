@@ -3,130 +3,202 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>豆图 · 拼豆图纸转化器</title>
-<style>
-  :root {
-    --pink: #FF6B9D;
-    --mint: #6BCFB5;
-    --yellow: #FFD93D;
-    --blue: #6FB1FC;
-    --lavender: #C89BFF;
-    --orange: #FFA45C;
-    --bg: #FFF8F3;
-    --card: #FFFFFF;
-    --text: #3D2E2A;
-    --text2: #9B8B82;
-    --border: #F0E6DD;
-  }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    line-height: 1.6;
-  }
-  .wrap { max-width: 860px; margin: 0 auto; padding: 24px 20px 60px; }
-  header { text-align: center; padding: 48px 0 28px; }
-  .logo { font-size: 52px; }
-  h1 { font-size: 30px; font-weight: 800; margin: 10px 0 6px; }
-  .tagline { color: var(--text2); font-size: 16px; }
-  .badges { margin-top: 16px; display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
-  .badge {
-    padding: 4px 14px; border-radius: 999px; font-size: 13px;
-    background: #fff; border: 1px solid var(--border); color: var(--text2);
-  }
-  .badge.hl { background: var(--pink); color: #fff; border-color: var(--pink); font-weight: 600; }
-  .section { margin-top: 36px; }
-  .section h2 { font-size: 20px; margin-bottom: 14px; }
-  .grid {
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px;
-  }
-  .card {
-    background: var(--card); border: 1px solid var(--border); border-radius: 16px;
-    padding: 16px; box-shadow: 0 2px 12px rgba(255,107,157,0.06);
-  }
-  .card .emoji { font-size: 28px; }
-  .card h3 { font-size: 15px; margin: 6px 0 4px; }
-  .card p { font-size: 13px; color: var(--text2); }
-  .links { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-top: 20px; }
-  .btn {
-    display: inline-block; padding: 12px 26px; border-radius: 999px;
-    text-decoration: none; font-weight: 700; font-size: 15px;
-  }
-  .btn.primary { background: var(--pink); color: #fff; }
-  .btn.secondary { background: var(--mint); color: #fff; }
-  .btn.outline { background: transparent; border: 2px solid var(--pink); color: var(--pink); }
-  .contact { background: #fff; border: 1px solid var(--border); border-radius: 16px; padding: 18px; margin-top: 12px; }
-  .contact .row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; flex-wrap: wrap; gap: 6px; }
-  .contact .row b { color: var(--pink); }
-  .note { font-size: 12px; color: var(--text2); margin-top: 16px; text-align: center; }
-  footer { text-align: center; margin-top: 48px; color: var(--text2); font-size: 13px; }
-  code { background: #FFF1F6; color: var(--pink); padding: 1px 6px; border-radius: 6px; font-size: 13px; }
-</style>
+<meta name="description" content="豆图 · 拼豆图纸转化器 —— 在线把照片变成拼豆图纸。纯浏览器本地计算，图片不上传；众数采样 + OKLab/CIEDE2000 感知色差 + 双阈值去背景，与 pixel-beads 同源算法。">
+<title>豆图 · 拼豆图纸转化器 — 在线生成拼豆图纸</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="icons/Icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="豆图">
+<link rel="stylesheet" href="pixel.css">
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <div class="logo">🧸</div>
-    <h1>豆图 · 拼豆图纸转化器</h1>
-    <div class="tagline">把照片变成可上手的拼豆图纸 —— 色号准确 · 本地优先 · 完全免费</div>
-    <div class="badges">
-      <span class="badge hl">免费 · 无广告 · 无内购</span>
-      <span class="badge">图片不上传</span>
-      <span class="badge">纯本地处理</span>
-      <span class="badge">非商用开源</span>
-    </div>
-  </header>
 
-  <div class="section">
-    <h2>✨ 功能</h2>
-    <div class="grid">
-      <div class="card"><div class="emoji">🎨</div><h3>精准色卡映射</h3><p>CIEDE2000 色差算法 + KD-tree 加速，4 套色卡（MARD / Perler / Hama）</p></div>
-      <div class="card"><div class="emoji">✂️</div><h3>自动提取主体</h3><p>背景太乱？一键自动框出图片主体，再手动微调</p></div>
-      <div class="card"><div class="emoji">🔍</div><h3>图纸预览</h3><p>色号数字标注 + 图例式用量清单 + 原图对比 + 成品模拟</p></div>
-      <div class="card"><div class="emoji">📦</div><h3>库存 / 套盒匹配</h3><p>录入你手头的豆子，生成时提示还缺哪些色、缺几颗</p></div>
-      <div class="card"><div class="emoji">🧵</div><h3>数字填色跟做</h3><p>每格标编号、点格打勾，进度自动保存，拼一半也能续</p></div>
-      <div class="card"><div class="emoji">📤</div><h3>导出分享</h3><p>高清 PNG / PDF（图纸+用量清单）导出，微信小红书直接分享</p></div>
-      <div class="card"><div class="emoji">🎬</div><h3>新手引导</h3><p>点对点 coach marks，一步步带你上手</p></div>
-      <div class="card"><div class="emoji">🛡️</div><h3>隐私优先</h3><p>图片与数据只在你的设备本地，不上传任何服务器</p></div>
+<nav class="nav">
+  <div class="nav-inner">
+    <a class="nav-logo" href="#top">豆图</a>
+    <div class="nav-links">
+      <a href="#generator">生成器</a>
+      <a href="#features">功能</a>
+      <a href="#get">获取</a>
+      <a href="#about">关于</a>
     </div>
   </div>
+</nav>
 
-  <div class="section">
-    <h2>📲 获取</h2>
-    <p style="font-size:14px;color:var(--text2);text-align:center;">
-      当前为 Flutter 移动应用（Android / iOS）。最新 APK 已发布到 GitHub Releases，
-      主流手机选 <code>arm64</code> 包即可。
-    </p>
-    <div class="links">
-      <a class="btn secondary" href="https://15209896293.github.io/doutu/app/">🌐 网页版试用（免安装）</a>
-      <a class="btn primary" href="https://github.com/15209896293/doutu/releases">下载 APK</a>
+<header class="hero" id="top">
+  <h1>把照片变成拼豆图纸。</h1>
+  <p>上传任意图片，自动生成色号准确的拼豆图纸 —— 纯浏览器本地计算，图片不上传。</p>
+  <div class="badges">
+    <span class="badge hl">免费 · 无广告 · 无内购</span>
+    <span class="badge">图片不上传</span>
+    <span class="badge">纯本地处理</span>
+    <span class="badge">非商用开源</span>
+  </div>
+  <div class="cta-row">
+    <a class="btn primary" href="#generator">开始生成</a>
+    <a class="btn outline" href="#features">了解功能</a>
+  </div>
+</header>
+
+<!-- ======================= 生成器 ======================= -->
+<section class="section" id="generator">
+  <div class="wrap">
+    <h2 class="section-title">拼豆图纸生成器</h2>
+    <p class="section-sub">众数采样 · OKLab / CIEDE2000 感知色差 · 双阈值去背景 · 贪心最大覆盖选色</p>
+
+    <div class="card panel">
+      <!-- 上传 -->
+      <div class="dropzone" id="dropzone">
+        <div class="dz-icon">🖼️</div>
+        <div class="dz-title">拖拽图片到此处，或点击选择图片</div>
+        <div class="dz-sub">JPG / PNG / WebP · ≤10MB · 图片仅在你的浏览器中处理</div>
+      </div>
+      <input type="file" id="fileInput" accept="image/*" hidden>
+      <div class="thumb-row" id="thumbRow" hidden>
+        <img class="thumb" id="thumb" alt="图片预览">
+        <div>
+          <div id="fileName" style="font-weight:600"></div>
+          <div style="color:var(--text2);font-size:13px" id="fileInfo"></div>
+          <button class="btn tint" id="reChoose" style="margin-top:8px;font-size:13px;padding:6px 16px">重新选择</button>
+        </div>
+      </div>
+
+      <div style="height:18px"></div>
+      <h3>生成设置</h3>
+      <div class="desc">参数已收敛为四个风格预设，可再微调图纸宽度与色卡</div>
+
+      <div class="field">
+        <div class="field-label">图案细节</div>
+        <div class="chips" id="presetChips"></div>
+      </div>
+
+      <div class="field">
+        <div class="field-label">图纸宽度 <span class="dim" id="widthLabel">81 格</span></div>
+        <div class="seg" id="widthSeg"></div>
+        <div id="customWidthRow" hidden style="margin-top:12px">
+          <input type="range" id="customWidth" min="16" max="200" value="81">
+          <div style="text-align:right;font-size:12px;color:var(--text2)" id="customWidthVal">81 格</div>
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="field-label">拼豆色卡 <span class="dim" id="paletteInfo"></span></div>
+        <select class="select-input" id="paletteSelect"></select>
+      </div>
+
+      <div class="switch-row">
+        <div class="lbl">
+          <b>自动去除背景</b>
+          <span>双阈值 flood-fill，纯色背景一键清除</span>
+        </div>
+        <div class="tgl on" id="bgToggle"></div>
+      </div>
+      <div class="switch-row">
+        <div class="lbl">
+          <b>细腻色差（CIEDE2000）</b>
+          <span id="deHint">OKLab · 感知最快</span>
+        </div>
+        <div class="tgl" id="deToggle"></div>
+      </div>
+
+      <div style="margin-top:22px">
+        <button class="btn primary" id="generateBtn" style="width:100%;padding:15px;font-size:17px" disabled>✨ 生成图纸</button>
+      </div>
+      <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <div style="margin-top:12px;color:var(--text2);font-size:14px">正在生成图纸…（本地计算，请稍候）</div>
+      </div>
+      <div class="err" id="err"></div>
+    </div>
+
+    <!-- 结果 -->
+    <div class="card panel result" id="result">
+      <h3>图纸预览</h3>
+      <div class="desc" id="resultDesc"></div>
+      <div class="stats" id="stats"></div>
+      <div class="view-bar">
+        <div class="seg" id="viewSeg">
+          <button data-view="grid" class="on">🧩 图纸</button>
+          <button data-view="compare">🔄 对比</button>
+          <button data-view="mock">✨ 成品模拟</button>
+        </div>
+      </div>
+      <div class="canvas-wrap" id="canvasWrap"></div>
+      <div class="bom">
+        <div class="bom-head">
+          <div style="font-weight:700">用量清单 <span id="bomTotal" style="color:var(--text2);font-weight:400;font-size:13px"></span></div>
+          <div style="display:flex;gap:8px">
+            <button class="btn tint" id="copyBom" style="font-size:13px;padding:7px 16px">复制清单</button>
+            <button class="btn outline" id="restoreAll" style="font-size:13px;padding:7px 16px">恢复全部</button>
+          </div>
+        </div>
+        <div class="bom-scroll" id="bomScroll"></div>
+        <div style="font-size:12px;color:var(--text2);margin-top:8px">点击色块可排除该色号（自动重映射到最近色），再次点击恢复</div>
+      </div>
+      <div class="cta-row export-row" style="justify-content:flex-start;margin-top:22px">
+        <button class="btn primary" id="dlPng">⬇️ 下载 PNG 图纸</button>
+        <button class="btn outline" id="printBtn">🖨️ 打印</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= 功能 ======================= -->
+<section class="section section-alt" id="features">
+  <div class="wrap">
+    <h2 class="section-title">✨ 功能</h2>
+    <p class="section-sub">复刻 pixel-beads.com 的算法管线，全部在浏览器内完成</p>
+    <div class="feature-grid">
+      <div class="feature-card"><div class="emoji">🎨</div><h3>精准色卡映射</h3><p>OKLab / CIEDE2000 感知色差，MARD 221 / 291、Perler、Hama 四套色卡</p></div>
+      <div class="feature-card"><div class="emoji">🧩</div><h3>众数桶采样</h3><p>dominant-bucket 主色采样，不混灰，杜绝「灰色毛边」</p></div>
+      <div class="feature-card"><div class="emoji">✂️</div><h3>自动去除背景</h3><p>双阈值 flood-fill + 置信度把关，纯色背景一键清除</p></div>
+      <div class="feature-card"><div class="emoji">🎯</div><h3>贪心最大覆盖选色</h3><p>色数受控时自动挑选最能代表整图的色号，色准最优</p></div>
+      <div class="feature-card"><div class="emoji">🔍</div><h3>图纸预览</h3><p>色号数字标注 + 原图对比 + 成品模拟，三种视角切换</p></div>
+      <div class="feature-card"><div class="emoji">📦</div><h3>用量清单</h3><p>每色颗数自动统计，点击色块排除不要的色号</p></div>
+      <div class="feature-card"><div class="emoji">📤</div><h3>导出分享</h3><p>高清 PNG 下载（≥1080px 含色号）或直接打印</p></div>
+      <div class="feature-card"><div class="emoji">🛡️</div><h3>隐私优先</h3><p>图片与数据只在你的浏览器本地，不上传任何服务器</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= 获取 ======================= -->
+<section class="section" id="get">
+  <div class="wrap">
+    <h2 class="section-title">📲 获取</h2>
+    <p class="section-sub">网页版已就绪；完整体验（编辑器 / 跟做 / 历史）请用手机 App 或 Flutter 网页版</p>
+    <div class="link-row">
+      <a class="btn primary" href="https://github.com/15209896293/doutu/releases">⬇️ 下载 APK</a>
+      <a class="btn secondary" href="app/">🌐 Flutter 完整网页版</a>
       <a class="btn outline" href="https://github.com/15209896293/doutu">GitHub 源码</a>
     </div>
-    <p class="note">网页版数据保存在浏览器本地（localStorage），换设备/清缓存会清空作品；完整体验建议用手机 App。</p>
-    <p class="note">安装时需允许「安装未知来源应用」；安装包为 debug 签名，仅用于个人试用。</p>
+    <p class="note">网页版数据保存在浏览器本地（localStorage），换设备 / 清缓存会清空作品；安装 APK 需允许「安装未知来源应用」。</p>
   </div>
+</section>
 
-  <div class="section">
-    <h2>👤 联系作者</h2>
+<!-- ======================= 关于 ======================= -->
+<section class="section section-alt" id="about">
+  <div class="wrap">
+    <h2 class="section-title">👤 关于与联系</h2>
+    <p class="section-sub">豆图 · 拼豆图纸转化器 —— 本地优先 · 无账号 · 图片不上传 · 免费非商用</p>
     <div class="contact">
       <div class="row"><span>QQ</span><b>3053676729</b></div>
       <div class="row"><span>邮箱</span><b>3053676729@qq.com</b></div>
       <div class="row"><span>开源地址</span><b>https://github.com/15209896293/doutu</b></div>
+      <div class="row"><span>算法来源</span><b>pixel-beads.com 同源管线（源码级还原）</b></div>
+    </div>
+    <div style="margin-top:16px" class="about-text">
+      本软件以 <b style="color:var(--text)">源代码开放 · 免费非商用</b> 方式发布，
+      禁止未经授权的商业用途。色卡数据与字体遵循其原有许可（MIT / SIL OFL 1.1）。
+      详见 <a href="https://github.com/15209896293/doutu/blob/main/LICENSE">LICENSE</a>。
     </div>
   </div>
+</section>
 
-  <div class="section">
-    <h2>📜 版权与许可</h2>
-    <p style="font-size:14px;color:var(--text2);">
-      本软件以 <b style="color:var(--text);">源代码开放 · 免费非商用</b> 方式发布，
-      <b style="color:var(--pink);">禁止未经授权的商业用途</b>。
-      色卡数据与字体遵循其原有许可（MIT / SIL OFL 1.1）。详见
-      <a href="https://github.com/15209896293/doutu/blob/main/LICENSE" style="color:var(--pink);">LICENSE</a>。
-    </p>
-  </div>
+<footer>
+  made with 💖 for 拼豆玩家 · © 2026 豆图作者 · QQ 3053676729 · 3053676729@qq.com
+</footer>
 
-  <footer>made with 💖 for 拼豆玩家 · © 2026 豆图作者</footer>
-</div>
+<script src="pixel-engine.js"></script>
+<script src="pixel-app.js"></script>
 </body>
 </html>

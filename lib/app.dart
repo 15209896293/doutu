@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'core/license/license_controller.dart';
 import 'features/import/import_screen.dart';
 import 'features/crop/crop_screen.dart';
 import 'features/setup/setup_screen.dart';
@@ -12,6 +13,7 @@ import 'features/export/export_screen.dart';
 import 'features/history/history_screen.dart';
 import 'features/inventory/inventory_screen.dart';
 import 'features/settings/settings_screen.dart';
+import 'features/trial/trial_gate.dart';
 import 'shared/theme/app_theme.dart';
 
 /// 路由名（dev-plan 4.4 页面清单）。
@@ -64,6 +66,10 @@ class _DoutuAppState extends State<DoutuApp> {
         debugShowCheckedModeBanner: false,
         theme: buildAppTheme(),
         routerConfig: _router,
+        // 试用版：在 Navigator 之上挂门卫，未解锁时全屏锁定
+        builder: kTrialMode
+            ? (context, child) => TrialGate(child: child ?? const SizedBox())
+            : null,
       ),
     );
   }

@@ -23,9 +23,9 @@ void main() {
       expect(palette.length, 221);
     });
 
-    test('纯白色映射到 H02（MARD 白色）', () {
+    test('纯白色映射到 H01（MARD 纯白，核对版数据）', () {
       final entry = mapper.nearest(rgbToLab(255, 255, 255));
-      expect(entry.code, 'H02');
+      expect(entry.code, 'H01');
     });
 
     test('纯黑色映射到 H07（MARD 黑色）', () {

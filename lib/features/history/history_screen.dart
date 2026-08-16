@@ -81,7 +81,7 @@ class HistoryScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '${project.pattern.size}×${project.pattern.size} · '
+                    '${project.pattern.size}×${project.pattern.height} · '
                     '${project.pattern.totalBeads} 颗 · '
                     '${project.pattern.colorCount} 色',
                     style: const TextStyle(
@@ -119,6 +119,7 @@ class _Thumb extends ConsumerWidget {
           painter: _ThumbPainter(
             grid: project.pattern.grid,
             size: project.pattern.size,
+            height: project.pattern.height,
             colors: colors,
           ),
           size: Size.infinite,
@@ -131,15 +132,21 @@ class _Thumb extends ConsumerWidget {
 class _ThumbPainter extends CustomPainter {
   final List<int> grid;
   final int size;
+  final int height;
   final List<int> colors;
 
-  _ThumbPainter({required this.grid, required this.size, required this.colors});
+  _ThumbPainter({
+    required this.grid,
+    required this.size,
+    required this.height,
+    required this.colors,
+  });
 
   @override
   void paint(Canvas canvas, Size canvasSize) {
     final cell = canvasSize.width / size;
     final paint = Paint();
-    for (var y = 0; y < size; y++) {
+    for (var y = 0; y < height; y++) {
       for (var x = 0; x < size; x++) {
         final idx = grid[y * size + x];
         if (idx < 0 || idx >= colors.length) continue;
@@ -154,5 +161,8 @@ class _ThumbPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_ThumbPainter old) =>
-      old.grid != grid || old.size != size || old.colors != colors;
+      old.grid != grid ||
+      old.size != size ||
+      old.height != height ||
+      old.colors != colors;
 }

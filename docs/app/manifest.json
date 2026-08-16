@@ -1,11 +1,11 @@
 {
-    "name": "doutu",
-    "short_name": "doutu",
+    "name": "豆图 · 拼豆图纸转化器",
+    "short_name": "豆图",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#FFFFFF",
+    "theme_color": "#0071E3",
+    "description": "豆图 · 拼豆图纸转化器 —— 把照片变成可上手的拼豆图纸，色号准确、本地优先、完全免费",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
