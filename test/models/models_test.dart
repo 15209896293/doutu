@@ -10,7 +10,10 @@ import 'package:doutu/shared/storage/app_settings.dart';
 void main() {
   group('BoardPreset', () {
     test('预设包含圆形板', () {
-      expect(BoardPreset.presets.any((p) => p.shape == BoardShape.circle), isTrue);
+      expect(
+        BoardPreset.presets.any((p) => p.shape == BoardShape.circle),
+        isTrue,
+      );
     });
 
     test('29 圆形板掩码：中心在内、四角在外', () {
@@ -90,10 +93,10 @@ void main() {
       expect(s.boardId, '81');
       expect(s.tourSeen, false);
       expect(s.cropTourSeen, false);
-      expect(s.autoFrameSubject, false);
+      expect(s.autoFrameSubject, true);
       expect(s.dither, false);
-      expect(s.maxColors, 10);
-      expect(s.presetId, 'standard');
+      expect(s.maxColors, 18);
+      expect(s.presetId, 'anime');
       expect(s.colorDistanceMode, 'oklab');
     });
 

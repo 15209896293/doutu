@@ -23,7 +23,7 @@
     analysis: null,       // {data, width, height} ≤1024
     fileName: '',
     fileSize: 0,
-    preset: 'standard',
+    preset: 'anime',
     width: 81,
     paletteId: 'mard_221',
     removeBackground: true,
@@ -86,8 +86,8 @@
         state.preset = p.id;
         box.querySelectorAll('.chip').forEach(function (c) { c.classList.remove('on'); });
         b.classList.add('on');
-        // 细腻档强制 CIEDE2000，其它档恢复用户开关
-        if (p.id === 'detailed') {
+        // 动漫/细腻档强制 CIEDE2000，其它档恢复用户开关
+        if (p.id === 'detailed' || p.id === 'anime') {
           state.detailed = true;
           $('deToggle').classList.add('on');
         }
@@ -204,7 +204,7 @@
 
   function updateDeToggleHint() {
     var t = $('deToggle');
-    if (state.preset === 'detailed') t.classList.add('on');
+    if (state.preset === 'detailed' || state.preset === 'anime') t.classList.add('on');
     // hint 文案
     $('deHint').textContent = state.detailed
       ? 'CIEDE2000 · 已开启'
@@ -221,10 +221,20 @@
       showErr('图片超过 10MB，请压缩后再试');
       return;
     }
-    if (!/^image\//.test(file.type)) {
-      showErr('请选择 JPG / PNG / WebP 图片');
-      return;
-    }
+    detectHeic(file).then(function (isHeic) {
+      if (isHeic) {
+        showErr('这张图片实际是 HEIC（即使扩展名显示为 PNG）。请在手机相册中导出为 JPG/PNG 后再上传；这样可避免浏览器解码失败。');
+        return;
+      }
+      if (!/^image\//.test(file.type)) {
+        showErr('请选择 JPG / PNG / WebP 图片');
+        return;
+      }
+      readImageFile(file);
+    }).catch(function () { readImageFile(file); });
+  }
+
+  function readImageFile(file) {
     state.fileName = file.name;
     state.fileSize = file.size;
     decodeToAnalysis(file).then(function (img) {
@@ -239,6 +249,16 @@
       $('err').style.display = 'none';
     }).catch(function (err) {
       showErr('图片读取失败：' + err.message);
+    });
+  }
+
+  function detectHeic(file) {
+    return file.slice(0, 16).arrayBuffer().then(function (buffer) {
+      var bytes = new Uint8Array(buffer);
+      if (bytes.length < 12) return false;
+      var brand = String.fromCharCode(bytes[4], bytes[5], bytes[6], bytes[7]) +
+        String.fromCharCode(bytes[8], bytes[9], bytes[10], bytes[11]);
+      return brand.slice(0, 4) === 'ftyp' && /heic|heix|hevc|hevx|mif1|msf1/.test(brand.slice(4));
     });
   }
 
@@ -685,11 +705,59 @@
     var palette = paletteOf();
     var longSide = Math.max(r.size, r.height);
     var cell = 1080 / longSide;
-    var canvas = document.createElement('canvas');
-    canvas.width = Math.max(1, Math.round(r.size * cell));
-    canvas.height = Math.max(1, Math.round(r.height * cell));
-    drawPattern(canvas.getContext('2d'), state.grid, r.size, r.height, palette, cell, { mode: 'flat', codes: true });
-    canvas.toBlob(function (blob) {
+    var gw = Math.max(1, Math.round(r.size * cell));
+    var gh = Math.max(1, Math.round(r.height * cell));
+
+    // 图纸板（drawPattern 会重置 canvas 尺寸，故先单独画板）
+    var board = document.createElement('canvas');
+    board.width = gw; board.height = gh;
+    drawPattern(board.getContext('2d'), state.grid, r.size, r.height, palette, cell, { mode: 'flat', codes: true });
+
+    // —— 清单区布局 ——
+    var padX = 24, sw = 52, gap = 16, labelH = 24, titleH = 36, spaceTop = 28, padBottom = 24;
+    var itemW = sw + gap;
+    var cols = Math.max(1, Math.floor((gw - padX * 2) / itemW));
+    var rows = state.bom.length ? Math.ceil(state.bom.length / cols) : 0;
+    var extraH = spaceTop + titleH + rows * (sw + labelH) + padBottom;
+
+    var out = document.createElement('canvas');
+    out.width = gw; out.height = gh + extraH;
+    var ctx = out.getContext('2d');
+    ctx.fillStyle = '#FFFFFF'; ctx.fillRect(0, 0, gw, gh + extraH);
+    ctx.drawImage(board, 0, 0);
+
+    // 标题
+    var y = gh + spaceTop;
+    ctx.fillStyle = '#1D1D1F';
+    ctx.font = '700 ' + Math.round(titleH * 0.6) + 'px -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif';
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+    ctx.fillText('用量清单 · 共 ' + state.totalBeads + ' 颗 / ' + state.bom.length + ' 色', padX, y + Math.round(titleH * 0.72));
+    y += titleH;
+
+    // 色块列表：色块带色号 + 颗数
+    ctx.textBaseline = 'middle';
+    state.bom.forEach(function (e, i) {
+      var col = i % cols, row = Math.floor(i / cols);
+      var x = padX + col * itemW;
+      var yy = y + row * (sw + labelH);
+      var lum = (0.2126 * e.r + 0.7152 * e.g + 0.0722 * e.b) / 255;
+
+      ctx.fillStyle = 'rgb(' + e.r + ',' + e.g + ',' + e.b + ')';
+      ctx.fillRect(x, yy, sw, sw);
+      ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+      ctx.strokeRect(x + 0.5, yy + 0.5, sw - 1, sw - 1);
+
+      ctx.fillStyle = lum > 0.5 ? '#1D1D1F' : '#FFFFFF';
+      ctx.font = '700 ' + Math.round(sw * 0.24) + 'px "SF Mono", ui-monospace, Menlo, Consolas, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(e.code, x + sw / 2, yy + sw / 2 + 0.5);
+
+      ctx.fillStyle = '#6E6E73';
+      ctx.font = '600 ' + Math.round(sw * 0.22) + 'px -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif';
+      ctx.fillText(e.count + ' 颗', x + sw / 2, yy + sw + labelH * 0.5);
+    });
+
+    out.toBlob(function (blob) {
       var a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       a.download = '豆图_' + r.size + 'x' + r.height + '.png';
@@ -733,7 +801,7 @@
 
   // 预设中文名（供结果描述）
   var PRESET_LABELS = {
-    simplified: '⚡ 精简', standard: '✨ 标准',
+    anime: '✦ 动漫增强', simplified: '⚡ 精简', standard: '✨ 标准',
     detailed: '🔬 细腻', smooth: '🌊 平滑',
   };
 

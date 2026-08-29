@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="豆图 · 拼豆图纸转化器 —— 在线把照片变成拼豆图纸。纯浏览器本地计算，图片不上传；众数采样 + OKLab/CIEDE2000 感知色差 + 双阈值去背景，与 pixel-beads 同源算法。">
-<title>豆图 · 拼豆图纸转化器 — 在线生成拼豆图纸</title>
+<meta name="description" content="豆图 · 拼豆图纸转化器 —— 为动漫角色优化的本地拼豆图纸工作台。保留主体、压缩碎色、生成可跟做的图纸与用量清单。">
+<title>豆图 · 动漫拼豆图纸工作台</title>
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="apple-touch-icon" href="icons/Icon-192.png">
 <meta name="mobile-web-app-capable" content="yes">
@@ -18,7 +18,6 @@
     <a class="nav-logo" href="#top">豆图</a>
     <div class="nav-links">
       <a href="#generator">生成器</a>
-      <a href="#features">功能</a>
       <a href="#get">获取</a>
       <a href="#about">关于</a>
     </div>
@@ -26,25 +25,35 @@
 </nav>
 
 <header class="hero" id="top">
-  <h1>把照片变成拼豆图纸。</h1>
-  <p>上传任意图片，自动生成色号准确的拼豆图纸 —— 纯浏览器本地计算，图片不上传。</p>
+  <div class="hero-kicker"><span></span> ANIME BEAD STUDIO · 2026</div>
+  <h1>把角色的灵魂，<br><em>留在每一颗豆里。</em></h1>
+  <p>为动漫角色和 AI 绘图优化：先稳住主体，再压缩碎色与噪点，生成真正能跟做的拼豆图纸。</p>
   <div class="badges">
-    <span class="badge hl">免费 · 无广告 · 无内购</span>
+    <span class="badge hl">✦ 动漫增强默认开启</span>
     <span class="badge">图片不上传</span>
-    <span class="badge">纯本地处理</span>
-    <span class="badge">非商用开源</span>
+    <span class="badge">本地处理</span>
+    <span class="badge">可下载图纸</span>
   </div>
   <div class="cta-row">
     <a class="btn primary" href="#generator">开始生成</a>
-    <a class="btn outline" href="#features">了解功能</a>
+    <a class="btn outline" href="#get">获取方式</a>
+  </div>
+  <div class="hero-proof" aria-label="核心能力">
+    <div><b>主体优先</b><span>避开水印与边缘杂物</span></div>
+    <div><b>18 色平衡</b><span>角色层次与可做性兼顾</span></div>
+    <div><b>0 上传</b><span>全程只在你的设备上运算</span></div>
   </div>
 </header>
 
 <!-- ======================= 生成器 ======================= -->
 <section class="section" id="generator">
   <div class="wrap">
+    <div class="section-kicker">01 · CONVERT</div>
     <h2 class="section-title">拼豆图纸生成器</h2>
-    <p class="section-sub">众数采样 · OKLab / CIEDE2000 感知色差 · 双阈值去背景 · 贪心最大覆盖选色</p>
+    <p class="section-sub">主体取景 · 感知选色 · 区域去噪 · 可编辑用量清单</p>
+    <div class="quality-strip" aria-label="转换流程">
+      <span><i>01</i> 锁定角色主体</span><span><i>02</i> 收敛可做颜色</span><span><i>03</i> 输出跟做图纸</span>
+    </div>
 
     <div class="card panel">
       <!-- 上传 -->
@@ -65,7 +74,7 @@
 
       <div style="height:18px"></div>
       <h3>生成设置</h3>
-      <div class="desc">参数已收敛为四个风格预设，可再微调图纸宽度与色卡</div>
+      <div class="desc">默认“动漫增强”适合角色图；再按成品大小微调图纸宽度与色卡。</div>
 
       <div class="field">
         <div class="field-label">图案细节</div>
@@ -143,28 +152,11 @@
   </div>
 </section>
 
-<!-- ======================= 功能 ======================= -->
-<section class="section section-alt" id="features">
-  <div class="wrap">
-    <h2 class="section-title">✨ 功能</h2>
-    <p class="section-sub">复刻 pixel-beads.com 的算法管线，全部在浏览器内完成</p>
-    <div class="feature-grid">
-      <div class="feature-card"><div class="emoji">🎨</div><h3>精准色卡映射</h3><p>OKLab / CIEDE2000 感知色差，MARD 221 / 291、Perler、Hama 四套色卡</p></div>
-      <div class="feature-card"><div class="emoji">🧩</div><h3>众数桶采样</h3><p>dominant-bucket 主色采样，不混灰，杜绝「灰色毛边」</p></div>
-      <div class="feature-card"><div class="emoji">✂️</div><h3>自动去除背景</h3><p>双阈值 flood-fill + 置信度把关，纯色背景一键清除</p></div>
-      <div class="feature-card"><div class="emoji">🎯</div><h3>贪心最大覆盖选色</h3><p>色数受控时自动挑选最能代表整图的色号，色准最优</p></div>
-      <div class="feature-card"><div class="emoji">🔍</div><h3>图纸预览</h3><p>色号数字标注 + 原图对比 + 成品模拟，三种视角切换</p></div>
-      <div class="feature-card"><div class="emoji">📦</div><h3>用量清单</h3><p>每色颗数自动统计，点击色块排除不要的色号</p></div>
-      <div class="feature-card"><div class="emoji">📤</div><h3>导出分享</h3><p>高清 PNG 下载（≥1080px 含色号）或直接打印</p></div>
-      <div class="feature-card"><div class="emoji">🛡️</div><h3>隐私优先</h3><p>图片与数据只在你的浏览器本地，不上传任何服务器</p></div>
-    </div>
-  </div>
-</section>
-
 <!-- ======================= 获取 ======================= -->
 <section class="section" id="get">
   <div class="wrap">
-    <h2 class="section-title">📲 获取</h2>
+    <div class="section-kicker">02 · USE ANYWHERE</div>
+    <h2 class="section-title">在网页或手机上继续做</h2>
     <p class="section-sub">网页版已就绪；完整体验（编辑器 / 跟做 / 历史）请用手机 App 或 Flutter 网页版</p>
     <div class="link-row">
       <a class="btn primary" href="https://github.com/15209896293/doutu/releases">⬇️ 下载 APK</a>
@@ -178,13 +170,14 @@
 <!-- ======================= 关于 ======================= -->
 <section class="section section-alt" id="about">
   <div class="wrap">
-    <h2 class="section-title">👤 关于与联系</h2>
-    <p class="section-sub">豆图 · 拼豆图纸转化器 —— 本地优先 · 无账号 · 图片不上传 · 免费非商用</p>
+    <div class="section-kicker">03 · ABOUT</div>
+    <h2 class="section-title">本地优先，创作可延展</h2>
+    <p class="section-sub">现在专注高质量转换；后续可扩展创意工坊、作品上传与协作补图。</p>
     <div class="contact">
       <div class="row"><span>QQ</span><b>3053676729</b></div>
       <div class="row"><span>邮箱</span><b>3053676729@qq.com</b></div>
       <div class="row"><span>开源地址</span><b>https://github.com/15209896293/doutu</b></div>
-      <div class="row"><span>算法来源</span><b>pixel-beads.com 同源管线（源码级还原）</b></div>
+      <div class="row"><span>转换策略</span><b>动漫主体优先 · 感知选色 · 区域清理</b></div>
     </div>
     <div style="margin-top:16px" class="about-text">
       本软件以 <b style="color:var(--text)">源代码开放 · 免费非商用</b> 方式发布，

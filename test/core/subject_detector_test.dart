@@ -32,4 +32,38 @@ void main() {
     }
     expect(detectSubject(image), isNull);
   });
+
+  test('主体旁有小型字幕时优先框选中心主体', () {
+    final image = img.Image(width: 160, height: 120);
+    for (final p in image) {
+      p
+        ..r = 250
+        ..g = 250
+        ..b = 250;
+    }
+    // 居中大主体。
+    for (var y = 35; y < 105; y++) {
+      for (var x = 55; x < 125; x++) {
+        final p = image.getPixel(x, y);
+        p
+          ..r = 45
+          ..g = 85
+          ..b = 180;
+      }
+    }
+    // 左上角独立气泡/字幕。
+    for (var y = 6; y < 24; y++) {
+      for (var x = 6; x < 42; x++) {
+        final p = image.getPixel(x, y);
+        p
+          ..r = 20
+          ..g = 20
+          ..b = 20;
+      }
+    }
+    final region = detectSubject(image);
+    expect(region, isNotNull);
+    expect(region!.x, greaterThan(35), reason: '不应把左上字幕纳入主裁剪框');
+    expect(region.y, greaterThan(20));
+  });
 }

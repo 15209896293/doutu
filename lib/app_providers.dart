@@ -26,8 +26,9 @@ import 'shared/storage/storage_factory.dart';
 // ---------------------------------------------------------------------------
 
 /// 跨端存储（io 文件系统 / web localStorage 条件工厂）。
-final appStorageProvider =
-    FutureProvider<AppStorage>((ref) => createAppStorage());
+final appStorageProvider = FutureProvider<AppStorage>(
+  (ref) => createAppStorage(),
+);
 
 /// 设置存储（惰性初始化）。
 final settingsStoreProvider = FutureProvider<SettingsStore>((ref) async {
@@ -42,8 +43,9 @@ final projectStoreProvider = FutureProvider<ProjectStore>((ref) async {
 });
 
 /// 跟做进度存储。
-final craftProgressStoreProvider =
-    FutureProvider<CraftProgressStore>((ref) async {
+final craftProgressStoreProvider = FutureProvider<CraftProgressStore>((
+  ref,
+) async {
   final storage = await ref.watch(appStorageProvider.future);
   return CraftProgressStore(storage, 'craft_progress.json');
 });
@@ -82,8 +84,8 @@ class SettingsNotifier extends AsyncNotifier<AppSettings> {
 
 final inventoryProvider =
     AsyncNotifierProvider<InventoryNotifier, Map<String, Map<String, int>>>(
-  InventoryNotifier.new,
-);
+      InventoryNotifier.new,
+    );
 
 class InventoryNotifier extends AsyncNotifier<Map<String, Map<String, int>>> {
   @override
@@ -126,8 +128,7 @@ class InventoryNotifier extends AsyncNotifier<Map<String, Map<String, int>>> {
 // 色卡
 // ---------------------------------------------------------------------------
 
-final palettesProvider =
-    FutureProvider<Map<String, Palette>>((ref) async {
+final palettesProvider = FutureProvider<Map<String, Palette>>((ref) async {
   final map = <String, Palette>{};
   for (final meta in kPaletteMetas) {
     final json = await rootBundle.loadString(meta.assetPath);
@@ -151,7 +152,8 @@ final activePaletteProvider = Provider<AsyncValue<Palette>>((ref) {
 final paletteForPatternProvider = Provider<AsyncValue<Palette>>((ref) {
   final palettes = ref.watch(palettesProvider);
   final conv = ref.watch(conversionProvider);
-  final id = conv.pattern?.paletteId ??
+  final id =
+      conv.pattern?.paletteId ??
       ref.watch(settingsProvider).valueOrNull?.paletteId ??
       'mard_221';
   return palettes.whenData((map) => map[id] ?? map['mard_221']!);
@@ -198,7 +200,7 @@ class ConversionState {
     this.status = ConversionStatus.empty,
     this.imageBytes,
     this.board = const BoardPreset(id: '81', label: '81×81', size: 81),
-    this.options = const ConvertOptions(gridSize: 81),
+    this.options = const ConvertOptions(gridSize: 81, presetId: 'anime'),
     this.pattern,
     this.avgColors = const [],
     this.backgroundCells = const [],
@@ -231,17 +233,15 @@ class ConversionState {
       backgroundCells: backgroundCells ?? this.backgroundCells,
       diagnostics: diagnostics ?? this.diagnostics,
       error: error ?? this.error,
-      editedGrid: clearEditedGrid
-          ? null
-          : (editedGrid ?? this.editedGrid),
+      editedGrid: clearEditedGrid ? null : (editedGrid ?? this.editedGrid),
     );
   }
 }
 
 final conversionProvider =
     NotifierProvider<ConversionNotifier, ConversionState>(
-  ConversionNotifier.new,
-);
+      ConversionNotifier.new,
+    );
 
 class ConversionNotifier extends Notifier<ConversionState> {
   @override
@@ -289,11 +289,9 @@ class ConversionNotifier extends Notifier<ConversionState> {
     final opts = allowedIndices == null
         ? state.options
         : state.options.copyWith(allowedIndices: allowedIndices);
-    final response = await convertInBackground(ConvertRequest(
-      imageBytes: bytes,
-      palette: palette,
-      options: opts,
-    ));
+    final response = await convertInBackground(
+      ConvertRequest(imageBytes: bytes, palette: palette, options: opts),
+    );
     if (response.error != null) {
       state = state.copyWith(
         status: ConversionStatus.error,
@@ -356,9 +354,7 @@ class ConversionNotifier extends Notifier<ConversionState> {
       status: ConversionStatus.done,
       board: BoardPreset(
         id: isCircle && p.size == 29 ? '29c' : '${p.size}',
-        label: isCircle && p.size == 29
-            ? '29 圆形'
-            : '${p.size}×${p.height}',
+        label: isCircle && p.size == 29 ? '29 圆形' : '${p.size}×${p.height}',
         size: p.size,
         shape: isCircle ? BoardShape.circle : BoardShape.square,
       ),
@@ -386,7 +382,8 @@ List<BomEntry> _buildBom(List<int> grid, Palette palette) {
       BomEntry(
         code: palette.entries[e.key].code,
         count: e.value,
-        color: (palette.entries[e.key].r << 16) |
+        color:
+            (palette.entries[e.key].r << 16) |
             (palette.entries[e.key].g << 8) |
             palette.entries[e.key].b,
         productCode: palette.entries[e.key].productCode,

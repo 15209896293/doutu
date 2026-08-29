@@ -869,6 +869,96 @@
   }
 
   // ======================================================================
+  // 动漫图预处理：保边色彩增强 + 线稿存活
+  // ======================================================================
+  // AI 生成的动漫图通常有很细的深色线稿、眼睛高光与大量相近色块。普通
+  // 线性缩小会平均掉这些关键信号。这里不重绘原图，而是在分析分辨率上用
+  // 局部对比度控制锐化强度，让强边缘在后续采样中仍然可见。
+  function animeEnhance(rgba, w, h) {
+    const out = new Uint8ClampedArray(rgba);
+    const lum = new Float32Array(w * h);
+    for (let i = 0; i < w * h; i++) {
+      const p = i * 4;
+      lum[i] = 0.2126 * rgba[p] + 0.7152 * rgba[p + 1] + 0.0722 * rgba[p + 2];
+    }
+    for (let y = 1; y < h - 1; y++) {
+      for (let x = 1; x < w - 1; x++) {
+        const i = y * w + x;
+        const p = i * 4;
+        if (rgba[p + 3] === 0) continue;
+        let sumR = 0, sumG = 0, sumB = 0, minL = 255, maxL = 0;
+        for (let dy = -1; dy <= 1; dy++) {
+          for (let dx = -1; dx <= 1; dx++) {
+            const q = ((y + dy) * w + x + dx) * 4;
+            sumR += rgba[q]; sumG += rgba[q + 1]; sumB += rgba[q + 2];
+            const l = lum[(y + dy) * w + x + dx];
+            minL = Math.min(minL, l); maxL = Math.max(maxL, l);
+          }
+        }
+        const edge = Math.max(0, Math.min(1, (maxL - minL - 22) / 95));
+        const blurR = sumR / 9, blurG = sumG / 9, blurB = sumB / 9;
+        const base = lum[i];
+        const amount = 0.12 + edge * 0.58;
+        const saturation = 1.03 + edge * 0.10;
+        const apply = (value, blur) => {
+          const sharpened = value + (value - blur) * amount;
+          return Math.max(0, Math.min(255, base + (sharpened - base) * saturation));
+        };
+        out[p] = apply(rgba[p], blurR);
+        out[p + 1] = apply(rgba[p + 1], blurG);
+        out[p + 2] = apply(rgba[p + 2], blurB);
+      }
+    }
+    return out;
+  }
+
+  /** 将面积不超过 maxSize 的同色连通域并入相邻主色，去除压缩噪点。 */
+  function mergeSmallRegions(grid, width, height, maxSize) {
+    if (!maxSize || maxSize < 1) return 0;
+    let changed = 0;
+    for (let pass = 0; pass < 3; pass++) {
+      const seen = new Uint8Array(grid.length);
+      const replacements = [];
+      for (let i = 0; i < grid.length; i++) {
+        if (seen[i] || grid[i] < 0) continue;
+        const color = grid[i];
+        const cells = [i]; seen[i] = 1;
+        for (let head = 0; head < cells.length; head++) {
+          const cur = cells[head], x = cur % width, y = Math.floor(cur / width);
+          for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+            const nx = x + dx, ny = y + dy;
+            if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue;
+            const ni = ny * width + nx;
+            if (!seen[ni] && grid[ni] === color) { seen[ni] = 1; cells.push(ni); }
+          }
+        }
+        if (cells.length > maxSize) continue;
+        const neighborCounts = new Map();
+        for (const cur of cells) {
+          const x = cur % width, y = Math.floor(cur / width);
+          for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+            if (!dx && !dy) continue;
+            const nx = x + dx, ny = y + dy;
+            if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue;
+            const v = grid[ny * width + nx];
+            if (v >= 0 && v !== color) neighborCounts.set(v, (neighborCounts.get(v) || 0) + 1);
+          }
+        }
+        let best = -1, bestCount = 0;
+        for (const [candidate, count] of neighborCounts) {
+          if (count > bestCount) { best = candidate; bestCount = count; }
+        }
+        if (best >= 0) replacements.push([cells, best]);
+      }
+      if (!replacements.length) break;
+      for (const [cells, color] of replacements) for (const i of cells) {
+        if (grid[i] !== color) { grid[i] = color; changed++; }
+      }
+    }
+    return changed;
+  }
+
+  // ======================================================================
   // 七、主流程
   // ======================================================================
 
@@ -876,7 +966,7 @@
    * @param {object} input {
    *   imageData: {data: Uint8ClampedArray, width, height},   // 分析图（≤1024）
    *   gridWidth, gridHeight,
-   *   preset: 'simplified'|'standard'|'detailed'|'smooth',
+   *   preset: 'anime'|'simplified'|'standard'|'detailed'|'smooth',
    *   palette: [{code, r, g, b, name?, productCode?}],
    *   removeBackground: boolean,
    *   distance: 'oklab'|'ciede2000' | null(按预设),
@@ -887,16 +977,18 @@
    */
   function convert(input) {
     const img = input.imageData;
-    const rgba = img.data;
+    const sourceRgba = img.data;
     const w = img.width, h = img.height;
 
     const presetDefs = {
-      simplified: { bits: 4, mode: 'dominant', maxColors: 8, distance: 'oklab', dither: false, cleanup: 4 },
+      anime:      { bits: 5, mode: 'dominant', maxColors: 18, distance: 'ciede2000', dither: false, cleanup: 3, region: 2, anime: true },
+      simplified: { bits: 4, mode: 'dominant', maxColors: 8, distance: 'oklab', dither: false, cleanup: 4, region: 3 },
       standard:   { bits: 4, mode: 'dominant', maxColors: 0, distance: 'oklab', dither: false, cleanup: 4 },
       detailed:   { bits: 5, mode: 'dominant', maxColors: 16, distance: 'ciede2000', dither: true, cleanup: 7 },
       smooth:     { bits: 4, mode: 'average', maxColors: 0, distance: 'oklab', dither: false, cleanup: 0, selection: 'cluster' },
     };
     const p = presetDefs[input.preset] || presetDefs.standard;
+    const rgba = p.anime ? animeEnhance(sourceRgba, w, h) : sourceRgba;
     const distance = input.distance || p.distance;
     const maxColors = input.maxColors != null ? input.maxColors : p.maxColors;
 
@@ -952,6 +1044,7 @@
         minNeighbors: p.cleanup, iterations: 2, gridWidth: input.gridWidth,
       });
     }
+    if (p.region) mergeSmallRegions(sel.grid, input.gridWidth, input.gridHeight, p.region);
 
     // ⑥ 统计 BOM / 诊断
     return buildResult(sel, sampled, input, bg, distance);
@@ -1020,6 +1113,7 @@
 
   /** 预设元信息（供 UI 展示） */
   const PRESETS = [
+    { id: 'anime', label: '✦ 动漫增强', sub: '线稿五官 · 默认推荐', maxColors: 18 },
     { id: 'simplified', label: '⚡ 精简', sub: '8 色内 · 干净利落', maxColors: 8 },
     { id: 'standard', label: '✨ 标准', sub: '均衡 · 默认推荐', maxColors: 0 },
     { id: 'detailed', label: '🔬 细腻', sub: 'CIEDE2000 最准', maxColors: 16 },
@@ -1028,7 +1122,7 @@
 
   global.PixelEngine = {
     srgbToOklab, oklabDistance, rgbToLab, ciede2000,
-    detectBackground, sampleGrid, selectAndMap, dither, cleanup, convert,
+    detectBackground, sampleGrid, selectAndMap, dither, cleanup, mergeSmallRegions, animeEnhance, convert,
     PRESETS,
   };
 })(typeof self !== 'undefined' ? self : globalThis);

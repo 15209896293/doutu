@@ -25,7 +25,7 @@ class AppSettings {
   /// 默认是否移除背景。
   final bool removeBackground;
 
-  /// 默认转换预设（simplified/standard/detailed/smooth）。
+  /// 默认转换预设（anime/simplified/standard/detailed/smooth）。
   final String presetId;
 
   /// 默认色差距离模式（"oklab"/"ciede2000"）。
@@ -44,14 +44,14 @@ class AppSettings {
     this.paletteId = 'mard_221',
     this.boardId = '81',
     this.customBoardSize = 52,
-    this.maxColors = 10,
+    this.maxColors = 18,
     this.dither = false,
     this.removeBackground = true,
-    this.presetId = 'standard',
+    this.presetId = 'anime',
     this.colorDistanceMode = 'oklab',
     this.tourSeen = false,
     this.cropTourSeen = false,
-    this.autoFrameSubject = false,
+    this.autoFrameSubject = true,
   });
 
   AppSettings copyWith({
@@ -83,32 +83,32 @@ class AppSettings {
   }
 
   Map<String, dynamic> toJson() => {
-        'paletteId': paletteId,
-        'boardId': boardId,
-        'customBoardSize': customBoardSize,
-        'maxColors': maxColors,
-        'dither': dither,
-        'removeBackground': removeBackground,
-        'presetId': presetId,
-        'colorDistanceMode': colorDistanceMode,
-        'tourSeen': tourSeen,
-        'cropTourSeen': cropTourSeen,
-        'autoFrameSubject': autoFrameSubject,
-      };
+    'paletteId': paletteId,
+    'boardId': boardId,
+    'customBoardSize': customBoardSize,
+    'maxColors': maxColors,
+    'dither': dither,
+    'removeBackground': removeBackground,
+    'presetId': presetId,
+    'colorDistanceMode': colorDistanceMode,
+    'tourSeen': tourSeen,
+    'cropTourSeen': cropTourSeen,
+    'autoFrameSubject': autoFrameSubject,
+  };
 
   factory AppSettings.fromJson(Map<String, dynamic> json) => AppSettings(
-        paletteId: json['paletteId'] as String? ?? 'mard_221',
-        boardId: json['boardId'] as String? ?? '81',
-        customBoardSize: json['customBoardSize'] as int? ?? 52,
-        maxColors: json['maxColors'] as int? ?? 0,
-        dither: json['dither'] as bool? ?? false,
-        removeBackground: json['removeBackground'] as bool? ?? true,
-        presetId: json['presetId'] as String? ?? 'standard',
-        colorDistanceMode: json['colorDistanceMode'] as String? ?? 'oklab',
-        tourSeen: json['tourSeen'] as bool? ?? false,
-        cropTourSeen: json['cropTourSeen'] as bool? ?? false,
-        autoFrameSubject: json['autoFrameSubject'] as bool? ?? false,
-      );
+    paletteId: json['paletteId'] as String? ?? 'mard_221',
+    boardId: json['boardId'] as String? ?? '81',
+    customBoardSize: json['customBoardSize'] as int? ?? 52,
+    maxColors: json['maxColors'] as int? ?? 18,
+    dither: json['dither'] as bool? ?? false,
+    removeBackground: json['removeBackground'] as bool? ?? true,
+    presetId: json['presetId'] as String? ?? 'anime',
+    colorDistanceMode: json['colorDistanceMode'] as String? ?? 'oklab',
+    tourSeen: json['tourSeen'] as bool? ?? false,
+    cropTourSeen: json['cropTourSeen'] as bool? ?? false,
+    autoFrameSubject: json['autoFrameSubject'] as bool? ?? true,
+  );
 }
 
 /// 设置存储（跨端：io 文件 / web localStorage）。

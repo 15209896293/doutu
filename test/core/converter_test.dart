@@ -374,7 +374,11 @@ void main() {
       final converter = PatternConverter(palette);
       final result = converter.convertImage(
         image,
-        const ConvertOptions(gridSize: 60, removeBackground: false),
+        const ConvertOptions(
+          gridSize: 60,
+          removeBackground: false,
+          pixelbeadsEngine: true,
+        ),
       );
       expect(result.pattern.height, 200, reason: '原站单边上限 200');
       expect(result.pattern.size, lessThanOrEqualTo(200));

@@ -127,7 +127,7 @@ class ConvertOptions {
 
   const ConvertOptions({
     required this.gridSize,
-    this.pixelbeadsEngine = true,
+    this.pixelbeadsEngine = false,
     this.presetId = 'standard',
     this.gridHeight,
     this.maxColors = 0,
@@ -226,7 +226,8 @@ class ConvertOptions {
           minimumForegroundCoverage ?? this.minimumForegroundCoverage,
       cleanupMinimumNeighbors:
           cleanupMinimumNeighbors ?? this.cleanupMinimumNeighbors,
-      spatialRegularizationIterations: spatialRegularizationIterations ??
+      spatialRegularizationIterations:
+          spatialRegularizationIterations ??
           this.spatialRegularizationIterations,
       spatialSmoothness: spatialSmoothness ?? this.spatialSmoothness,
       spatialEdgeSigma: spatialEdgeSigma ?? this.spatialEdgeSigma,
@@ -366,16 +367,14 @@ class PatternConverter {
 
     // ①′ 输入预滤波：保边平滑去噪 / 对比度饱和度增强 / 边缘锐化（unsharp）
     var analysis = analysis0;
-    if (options.prefilterSmooth || options.prefilterEnhance || options.prefilterSharpen) {
+    if (options.prefilterSmooth ||
+        options.prefilterEnhance ||
+        options.prefilterSharpen) {
       if (options.prefilterSmooth) {
         analysis = img.smooth(analysis, weight: 3);
       }
       if (options.prefilterEnhance) {
-        analysis = img.adjustColor(
-          analysis,
-          contrast: 1.08,
-          saturation: 1.05,
-        );
+        analysis = img.adjustColor(analysis, contrast: 1.08, saturation: 1.05);
       }
       if (options.prefilterSharpen) {
         analysis = _unsharpMask(analysis, amount: 0.45);
@@ -428,7 +427,11 @@ class PatternConverter {
     // 兜底①：背景检测疑似吞掉主体（有效格过少）→ 去掉背景重新采样，绝不输出空白
     var backgroundFallback = false;
     if (options.removeBackground && fgCount / total < 0.05) {
-      sampled = sampleDominantColors(analysis, samplerOpts, backgroundMask: null);
+      sampled = sampleDominantColors(
+        analysis,
+        samplerOpts,
+        backgroundMask: null,
+      );
       cells = sampled.cells;
       fgCount = cells.where((c) => c != null).length;
       bg = BackgroundResult(
@@ -514,8 +517,13 @@ class PatternConverter {
     }
     if (options.cleanupMinimumNeighbors > 0) {
       final before = grid;
-      grid = removeSingleCellRegions(grid, cells, n,
-          height: m, minRegionSize: options.minRegionSize);
+      grid = removeSingleCellRegions(
+        grid,
+        cells,
+        n,
+        height: m,
+        minRegionSize: options.minRegionSize,
+      );
       for (var i = 0; i < grid.length; i++) {
         if (grid[i] != before[i]) cleanupChanged++;
       }
@@ -610,8 +618,11 @@ class PatternConverter {
         final cur = buf[i];
         if (cell == null || cell.isOutline || cur == null) continue;
 
-        final idx = mapper.nearestAmongRgb(cur, selected,
-            applyRedDefense: false);
+        final idx = mapper.nearestAmongRgb(
+          cur,
+          selected,
+          applyRedDefense: false,
+        );
         out[i] = idx;
 
         final target = paletteRgb[idx];
@@ -625,7 +636,8 @@ class PatternConverter {
           final nc = cells[ni];
           final nb = buf[ni];
           if (nc == null || nc.isOutline || nb == null) return;
-          buf[ni] = (clampAdd((nb >> 16) & 0xFF, er * w) << 16) |
+          buf[ni] =
+              (clampAdd((nb >> 16) & 0xFF, er * w) << 16) |
               (clampAdd((nb >> 8) & 0xFF, eg * w) << 8) |
               clampAdd(nb & 0xFF, eb * w);
         }
@@ -717,7 +729,8 @@ class PatternConverter {
         BomEntry(
           code: palette.entries[e.key].code,
           count: e.value,
-          color: (palette.entries[e.key].r << 16) |
+          color:
+              (palette.entries[e.key].r << 16) |
               (palette.entries[e.key].g << 8) |
               palette.entries[e.key].b,
           productCode: palette.entries[e.key].productCode,
@@ -729,6 +742,47 @@ class PatternConverter {
 
 /// 转换预设（对齐 pixel-beads「图案细节」四档；参数组见 v0.8 §1.3）。
 class ConvertPresets {
+  /// 动漫增强（默认）：强化线稿与眼部等高对比细节，兼顾可拼性。
+  ///
+  /// 与纯照片算法不同，动漫图常有大色块、细线稿和小面积高光；本预设
+  /// 使用更细的众数桶、轻量输入增强、边缘锐化与较温和的区域清理。
+  static ConvertOptions anime({
+    required int gridSize,
+    String? maskShape,
+    List<int>? allowedIndices,
+  }) {
+    return ConvertOptions(
+      gridSize: gridSize,
+      maskShape: maskShape,
+      allowedIndices: allowedIndices,
+      pixelbeadsEngine: false,
+      presetId: 'anime',
+      maxColors: 18,
+      dither: false,
+      removeBackground: true,
+      prefilterEnhance: true,
+      prefilterSharpen: true,
+      minRegionSize: 2,
+      colorDistanceMode: ColorDistance.ciede2000,
+      cellSamplingMode: CellSamplingMode.dominantBucket,
+      colorBucketBits: 5,
+      outlineDarkLuminance: 0.36,
+      outlineDarkRatio: 0.14,
+      outlineContrast: 0.12,
+      outlineWeight: 3.2,
+      backgroundSeedDeltaE: 8,
+      backgroundFillDeltaE: 13,
+      backgroundMinimumConfidence: 0.86,
+      minimumForegroundCoverage: 0.12,
+      cleanupMinimumNeighbors: 3,
+      spatialRegularizationIterations: 1,
+      spatialSmoothness: 1.2,
+      spatialEdgeSigma: 8.0,
+      redDefense: true,
+      paletteSelectionMode: PaletteSelectionMode.fixedGreedy,
+    );
+  }
+
   /// 精简：色数少、干净、适合纯色画/卡通。
   static ConvertOptions simplified({
     required int gridSize,
@@ -737,6 +791,7 @@ class ConvertPresets {
   }) {
     return ConvertOptions(
       gridSize: gridSize,
+      pixelbeadsEngine: false,
       maskShape: maskShape,
       allowedIndices: allowedIndices,
       presetId: 'simplified',
@@ -771,6 +826,7 @@ class ConvertPresets {
   }) {
     return ConvertOptions(
       gridSize: gridSize,
+      pixelbeadsEngine: false,
       maskShape: maskShape,
       allowedIndices: allowedIndices,
       maxColors: 10,
@@ -805,6 +861,7 @@ class ConvertPresets {
   }) {
     return ConvertOptions(
       gridSize: gridSize,
+      pixelbeadsEngine: false,
       maskShape: maskShape,
       allowedIndices: allowedIndices,
       maxColors: 16,
@@ -839,6 +896,7 @@ class ConvertPresets {
   }) {
     return ConvertOptions(
       gridSize: gridSize,
+      pixelbeadsEngine: false,
       maskShape: maskShape,
       allowedIndices: allowedIndices,
       maxColors: 0,
@@ -874,27 +932,37 @@ class ConvertPresets {
     List<int>? allowedIndices,
   }) {
     switch (id) {
+      case 'anime':
+        return anime(
+          gridSize: gridSize,
+          maskShape: maskShape,
+          allowedIndices: allowedIndices,
+        );
       case 'simplified':
         return simplified(
-            gridSize: gridSize,
-            maskShape: maskShape,
-            allowedIndices: allowedIndices);
+          gridSize: gridSize,
+          maskShape: maskShape,
+          allowedIndices: allowedIndices,
+        );
       case 'detailed':
         return detailed(
-            gridSize: gridSize,
-            maskShape: maskShape,
-            allowedIndices: allowedIndices);
+          gridSize: gridSize,
+          maskShape: maskShape,
+          allowedIndices: allowedIndices,
+        );
       case 'smooth':
         return smooth(
-            gridSize: gridSize,
-            maskShape: maskShape,
-            allowedIndices: allowedIndices);
+          gridSize: gridSize,
+          maskShape: maskShape,
+          allowedIndices: allowedIndices,
+        );
       case 'standard':
       default:
         return standard(
-            gridSize: gridSize,
-            maskShape: maskShape,
-            allowedIndices: allowedIndices);
+          gridSize: gridSize,
+          maskShape: maskShape,
+          allowedIndices: allowedIndices,
+        );
     }
   }
 }

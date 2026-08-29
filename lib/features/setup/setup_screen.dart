@@ -80,8 +80,10 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                       padding: const EdgeInsets.all(14),
                       child: Row(
                         children: [
-                          const Text('色数上限 · 抖动 · 去背景 · 色差',
-                              style: TextStyle(fontSize: 14)),
+                          const Text(
+                            '色数上限 · 抖动 · 去背景 · 色差',
+                            style: TextStyle(fontSize: 14),
+                          ),
                           const Spacer(),
                           Icon(
                             _advancedOpen
@@ -99,7 +101,8 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
             ),
             const SizedBox(height: 28),
             ElevatedButton(
-              onPressed: conv.status == ConversionStatus.converting ||
+              onPressed:
+                  conv.status == ConversionStatus.converting ||
                       conv.imageBytes == null
                   ? null
                   : () => _generate(context),
@@ -108,9 +111,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                 padding: const EdgeInsets.symmetric(vertical: 16),
               ),
               child: Text(
-                conv.status == ConversionStatus.converting
-                    ? '生成中…'
-                    : '✨ 生成图纸',
+                conv.status == ConversionStatus.converting ? '生成中…' : '✨ 生成图纸',
                 style: const TextStyle(fontSize: 17),
               ),
             ),
@@ -125,8 +126,8 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                 ),
               ),
             settingsAsync.maybeWhen(
-              error: (e, _) => Text('设置加载失败：$e',
-                  style: const TextStyle(fontSize: 11)),
+              error: (e, _) =>
+                  Text('设置加载失败：$e', style: const TextStyle(fontSize: 11)),
               orElse: () => const SizedBox.shrink(),
             ),
             const SizedBox(height: 8),
@@ -152,8 +153,10 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
             contentPadding: const EdgeInsets.symmetric(horizontal: 14),
             dense: true,
             title: const Text('保持原图比例', style: TextStyle(fontSize: 14)),
-            subtitle: const Text('4:3 / 16:9 / 竖图都不变形',
-                style: TextStyle(fontSize: 11)),
+            subtitle: const Text(
+              '4:3 / 16:9 / 竖图都不变形',
+              style: TextStyle(fontSize: 11),
+            ),
             value: keepAspect,
             onChanged: (v) {
               final next = v
@@ -212,11 +215,12 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
     );
   }
 
-  /// 图案细节预设（对齐 pixel-beads：简化/标准/细腻/平滑自然）。
+  /// 图案细节预设：默认动漫增强，另保留照片/像素风的传统档位。
   Widget _presetSelector(ConversionState conv) {
     final settings = ref.watch(settingsProvider).valueOrNull;
-    final current = settings?.presetId ?? 'standard';
+    final current = settings?.presetId ?? 'anime';
     const presets = <(String, String, String)>[
+      ('anime', '✦ 动漫增强', '线稿五官 · 默认推荐'),
       ('simplified', '⚡ 精简', '8 色内 · 干净利落'),
       ('standard', '✨ 标准', '均衡 · 默认推荐'),
       ('detailed', '🔬 细腻', 'CIEDE2000 最准'),
@@ -250,9 +254,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                     style: TextStyle(
                       fontWeight: FontWeight.w700,
                       fontSize: 14,
-                      color: current == id
-                          ? Colors.white
-                          : AppColors.textMain,
+                      color: current == id ? Colors.white : AppColors.textMain,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -282,7 +284,9 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
       maskShape: conv.board.shape == BoardShape.circle ? 'circle' : null,
       allowedIndices: conv.options.allowedIndices,
     );
-    ref.read(conversionProvider.notifier).setOptions(
+    ref
+        .read(conversionProvider.notifier)
+        .setOptions(
           preset.copyWith(restrictToOwned: conv.options.restrictToOwned),
         );
     _persistSettings();
@@ -319,7 +323,11 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
         ),
         child: Column(
           children: [
-            _BoardGlyph(size: preset.size, shape: preset.shape, selected: selected),
+            _BoardGlyph(
+              size: preset.size,
+              shape: preset.shape,
+              selected: selected,
+            ),
             const SizedBox(height: 8),
             Text(
               preset.label,
@@ -395,7 +403,8 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
           keyboardType: TextInputType.number,
           autofocus: true,
           decoration: const InputDecoration(
-            hintText: '${BoardPreset.minCustomSize}–${BoardPreset.maxCustomSize}',
+            hintText:
+                '${BoardPreset.minCustomSize}–${BoardPreset.maxCustomSize}',
           ),
         ),
         actions: [
@@ -404,18 +413,21 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
             child: const Text('取消'),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(context, int.tryParse(controller.text)),
+            onPressed: () =>
+                Navigator.pop(context, int.tryParse(controller.text)),
             child: const Text('确定'),
           ),
         ],
       ),
     );
     if (result == null) return;
-    final clamped =
-        result.clamp(BoardPreset.minCustomSize, BoardPreset.maxCustomSize);
-    ref.read(conversionProvider.notifier).setBoard(
-          BoardPreset(id: 'custom', label: '自定义', size: clamped),
-        );
+    final clamped = result.clamp(
+      BoardPreset.minCustomSize,
+      BoardPreset.maxCustomSize,
+    );
+    ref
+        .read(conversionProvider.notifier)
+        .setBoard(BoardPreset(id: 'custom', label: '自定义', size: clamped));
     _persistSettings();
   }
 
@@ -531,8 +543,10 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
             contentPadding: EdgeInsets.zero,
             dense: true,
             title: const Text('照片去噪', style: TextStyle(fontSize: 14)),
-            subtitle: const Text('照片噪点/灰蒙蒙时开启，色块更干净',
-                style: TextStyle(fontSize: 11)),
+            subtitle: const Text(
+              '照片噪点/灰蒙蒙时开启，色块更干净',
+              style: TextStyle(fontSize: 11),
+            ),
             value: options.prefilterSmooth,
             onChanged: (v) =>
                 _updateOptions(options.copyWith(prefilterSmooth: v)),
@@ -541,8 +555,10 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
             contentPadding: EdgeInsets.zero,
             dense: true,
             title: const Text('边缘锐化', style: TextStyle(fontSize: 14)),
-            subtitle: const Text('卡通/描边图更清晰，边缘不糊',
-                style: TextStyle(fontSize: 11)),
+            subtitle: const Text(
+              '卡通/描边图更清晰，边缘不糊',
+              style: TextStyle(fontSize: 11),
+            ),
             value: options.prefilterSharpen,
             onChanged: (v) =>
                 _updateOptions(options.copyWith(prefilterSharpen: v)),
@@ -551,8 +567,10 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
             contentPadding: EdgeInsets.zero,
             dense: true,
             title: const Text('输入增强（颜色更鲜明）', style: TextStyle(fontSize: 14)),
-            subtitle: const Text('提升对比度与饱和度，适合偏灰的照片',
-                style: TextStyle(fontSize: 11)),
+            subtitle: const Text(
+              '提升对比度与饱和度，适合偏灰的照片',
+              style: TextStyle(fontSize: 11),
+            ),
             value: options.prefilterEnhance,
             onChanged: (v) =>
                 _updateOptions(options.copyWith(prefilterEnhance: v)),
@@ -561,8 +579,10 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
             contentPadding: EdgeInsets.zero,
             dense: true,
             title: const Text('只用手头有的豆子', style: TextStyle(fontSize: 14)),
-            subtitle: const Text('需先在「我的豆子库存」录入',
-                style: TextStyle(fontSize: 11)),
+            subtitle: const Text(
+              '需先在「我的豆子库存」录入',
+              style: TextStyle(fontSize: 11),
+            ),
             value: options.restrictToOwned,
             onChanged: (v) =>
                 _updateOptions(options.copyWith(restrictToOwned: v)),
@@ -580,13 +600,14 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                   segments: const [
                     ButtonSegment(
                       value: ColorDistance.oklab,
-                      label: Text('OKLab 感知最快',
-                          style: TextStyle(fontSize: 11)),
+                      label: Text('OKLab 感知最快', style: TextStyle(fontSize: 11)),
                     ),
                     ButtonSegment(
                       value: ColorDistance.ciede2000,
-                      label: Text('CIEDE2000 最准',
-                          style: TextStyle(fontSize: 11)),
+                      label: Text(
+                        'CIEDE2000 最准',
+                        style: TextStyle(fontSize: 11),
+                      ),
                     ),
                   ],
                   selected: {options.colorDistanceMode},
@@ -664,17 +685,21 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
     final settings = ref.read(settingsProvider).valueOrNull;
     if (settings == null) return;
     try {
-      await ref.read(settingsProvider.notifier).saveSettings(settings.copyWith(
-            boardId: conv.board.id,
-            customBoardSize: conv.board.id == 'custom'
-                ? conv.board.size
-                : settings.customBoardSize,
-            maxColors: conv.options.maxColors,
-            dither: conv.options.dither,
-            removeBackground: conv.options.removeBackground,
-            presetId: _presetIdFor(conv),
-            colorDistanceMode: conv.options.colorDistanceMode.name,
-          ));
+      await ref
+          .read(settingsProvider.notifier)
+          .saveSettings(
+            settings.copyWith(
+              boardId: conv.board.id,
+              customBoardSize: conv.board.id == 'custom'
+                  ? conv.board.size
+                  : settings.customBoardSize,
+              maxColors: conv.options.maxColors,
+              dither: conv.options.dither,
+              removeBackground: conv.options.removeBackground,
+              presetId: _presetIdFor(conv),
+              colorDistanceMode: conv.options.colorDistanceMode.name,
+            ),
+          );
     } catch (_) {
       // 持久化失败不影响生成。
     }
@@ -705,9 +730,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
       if (allowedIndices.isEmpty) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('你还没有录入库存，请先到「我的豆子库存」录入后再试'),
-            ),
+            const SnackBar(content: Text('你还没有录入库存，请先到「我的豆子库存」录入后再试')),
           );
         }
         return;
@@ -773,7 +796,8 @@ class _BoardGlyphPainter extends CustomPainter {
       n = (size / step).ceil();
     }
     final cell = canvasSize.width / n;
-    final paint = Paint()..color = selected ? Colors.white : AppColors.accentBlue;
+    final paint = Paint()
+      ..color = selected ? Colors.white : AppColors.accentBlue;
     for (var gy = 0; gy < n; gy++) {
       for (var gx = 0; gx < n; gx++) {
         final x = gx * step;
@@ -806,10 +830,12 @@ class _PaletteSwatch extends StatelessWidget {
     final step = (entries.length / 8).ceil().clamp(1, 100);
     final sample = <Color>[
       for (var i = 0; i < entries.length; i += step)
-        Color(0xFF000000 |
-            (entries[i].r << 16) |
-            (entries[i].g << 8) |
-            entries[i].b),
+        Color(
+          0xFF000000 |
+              (entries[i].r << 16) |
+              (entries[i].g << 8) |
+              entries[i].b,
+        ),
     ];
     return SizedBox(
       width: 44,
