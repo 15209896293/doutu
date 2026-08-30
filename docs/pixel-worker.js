@@ -4,7 +4,7 @@
  */
 'use strict';
 
-importScripts('pixel-engine.js');
+importScripts('pixel-engine.js?v=subject-frame-v5');
 
 self.onmessage = function (e) {
   var input = e.data;

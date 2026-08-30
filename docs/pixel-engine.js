@@ -959,6 +959,210 @@
   }
 
   // ======================================================================
+  // 六点五、主体取景（背景检测后的安全裁切）
+  // ======================================================================
+
+  /**
+   * 从前景连通块中推断主要角色的取景框。
+   *
+   * 这不是把背景简单设为透明：先找到主体，再让主体占据合理画幅。
+   * 小而贴近主体的配件会合并；远处水印、字幕和零散噪点不会拉大画面。
+   */
+  function findSubjectFrame(backgroundMask, w, h) {
+    if (!backgroundMask) return null;
+    const total = w * h;
+    const seen = new Uint8Array(total);
+    const components = [];
+    const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+
+    for (let start = 0; start < total; start++) {
+      if (backgroundMask[start] || seen[start]) continue;
+      const queue = [start];
+      seen[start] = 1;
+      let head = 0, area = 0, left = w, right = 0, top = h, bottom = 0;
+      while (head < queue.length) {
+        const cur = queue[head++];
+        const x = cur % w, y = Math.floor(cur / w);
+        area++;
+        if (x < left) left = x; if (x > right) right = x;
+        if (y < top) top = y; if (y > bottom) bottom = y;
+        for (const [dx, dy] of dirs) {
+          const nx = x + dx, ny = y + dy;
+          if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+          const ni = ny * w + nx;
+          if (!backgroundMask[ni] && !seen[ni]) { seen[ni] = 1; queue.push(ni); }
+        }
+      }
+      components.push({ area, left, right, top, bottom });
+    }
+    if (!components.length) return null;
+
+    // 面积优先，同时轻微偏向画面中心，减少把边缘字幕当作主体的概率。
+    const diagonal = Math.sqrt(w * w + h * h);
+    components.sort((a, b) => score(b) - score(a));
+    function score(c) {
+      const cx = (c.left + c.right) / 2, cy = (c.top + c.bottom) / 2;
+      const dist = Math.sqrt((cx - w / 2) ** 2 + (cy - h / 2) ** 2) / diagonal;
+      return c.area * (1.12 - Math.min(.32, dist));
+    }
+    const main = components[0];
+    if (main.area < total * .012) return null;
+    let left = main.left, right = main.right, top = main.top, bottom = main.bottom;
+    const minAccessoryArea = Math.max(8, total * .0015);
+    const maxGap = Math.max(w, h) * .055;
+
+    // 合并角色身体、发饰等靠近主块的独立部件。
+    for (const c of components.slice(1)) {
+      if (c.area < minAccessoryArea) continue;
+      const gapX = c.left > right ? c.left - right - 1 : left > c.right ? left - c.right - 1 : 0;
+      const gapY = c.top > bottom ? c.top - bottom - 1 : top > c.bottom ? top - c.bottom - 1 : 0;
+      if (Math.sqrt(gapX * gapX + gapY * gapY) > maxGap) continue;
+      left = Math.min(left, c.left); right = Math.max(right, c.right);
+      top = Math.min(top, c.top); bottom = Math.max(bottom, c.bottom);
+    }
+
+    const pad = Math.max(4, Math.round(Math.max(right - left + 1, bottom - top + 1) * .09));
+    left = Math.max(0, left - pad); right = Math.min(w - 1, right + pad);
+    top = Math.max(0, top - pad); bottom = Math.min(h - 1, bottom + pad);
+    const frameArea = (right - left + 1) * (bottom - top + 1);
+    if (frameArea > total * .94) return null;
+    return { left, top, width: right - left + 1, height: bottom - top + 1 };
+  }
+
+  function cropToFrame(rgba, backgroundMask, w, h, frame) {
+    const data = new Uint8ClampedArray(frame.width * frame.height * 4);
+    const mask = backgroundMask ? new Uint8Array(frame.width * frame.height) : null;
+    let foreground = 0;
+    for (let y = 0; y < frame.height; y++) {
+      const srcStart = ((frame.top + y) * w + frame.left);
+      const dstStart = y * frame.width;
+      data.set(rgba.subarray(srcStart * 4, (srcStart + frame.width) * 4), dstStart * 4);
+      if (mask) {
+        mask.set(backgroundMask.subarray(srcStart, srcStart + frame.width), dstStart);
+        for (let x = 0; x < frame.width; x++) if (!mask[dstStart + x]) foreground++;
+      }
+    }
+    return {
+      rgba: data, mask, width: frame.width, height: frame.height,
+      foregroundCoverage: foreground / (frame.width * frame.height),
+    };
+  }
+
+  // ======================================================================
+  // 六点六、视觉主体取景（没有纯色背景时的保守兜底）
+  // ======================================================================
+
+  /**
+   * 在没有可靠背景蒙版时，寻找「成片的角色色彩」而不是整张图的最大轮廓。
+   *
+   * 漫画截图里常见的大对白框是白底 + 黑线；把它当作前景会吞掉角色。
+   * 因此这里刻意只以中高饱和度的连续区域建立候选，并只合并靠近它的
+   * 发饰、衣服等区域。它是保守回退：信心不足时返回 null，保持原图，
+   * 绝不把一张普通照片随意裁掉。
+   */
+  function findVisualSubjectFrame(rgba, w, h) {
+    const step = Math.max(2, Math.ceil(Math.max(w, h) / 240));
+    const sw = Math.ceil(w / step), sh = Math.ceil(h / step), total = sw * sh;
+    const active = new Uint8Array(total);
+    const weight = new Float32Array(total);
+    let totalWeight = 0;
+
+    for (let sy = 0; sy < sh; sy++) for (let sx = 0; sx < sw; sx++) {
+      const x0 = sx * step, y0 = sy * step;
+      const x1 = Math.min(w, x0 + step), y1 = Math.min(h, y0 + step);
+      let score = 0, count = 0;
+      for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) {
+        const o = (y * w + x) * 4;
+        if (rgba[o + 3] < 16) continue;
+        const r = rgba[o], g = rgba[o + 1], b = rgba[o + 2];
+        const hi = Math.max(r, g, b), lo = Math.min(r, g, b);
+        const sat = hi ? (hi - lo) / hi : 0;
+        const lum = (r * 0.2126 + g * 0.7152 + b * 0.0722) / 255;
+        // 纯白对白框、灰黑文字的 score 接近 0；角色头发、服装的颜色保留。
+        // 阈值故意比一般“显著性检测”更高：浅蓝/米白漫画底色不能占用角色框。
+        if (sat > .20 && lum > .08 && lum < .93) {
+          score += (sat - .17) * (0.55 + 0.45 * (1 - Math.abs(lum - .56)));
+        }
+        count++;
+      }
+      const i = sy * sw + sx;
+      const v = count ? score / count : 0;
+      weight[i] = v;
+      // 低阈值先连通，最终再按色彩总量和集中度做安全把关。
+      if (v > .070) { active[i] = 1; totalWeight += v; }
+    }
+    if (totalWeight <= 0) return null;
+
+    const seen = new Uint8Array(total), components = [];
+    const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]];
+    for (let start = 0; start < total; start++) {
+      if (!active[start] || seen[start]) continue;
+      const q = [start]; seen[start] = 1;
+      let head = 0, area = 0, mass = 0, left = sw, right = 0, top = sh, bottom = 0;
+      while (head < q.length) {
+        const cur = q[head++], x = cur % sw, y = (cur / sw) | 0;
+        area++; mass += weight[cur];
+        if (x < left) left = x; if (x > right) right = x;
+        if (y < top) top = y; if (y > bottom) bottom = y;
+        for (const d of dirs) {
+          const nx = x + d[0], ny = y + d[1];
+          if (nx < 0 || ny < 0 || nx >= sw || ny >= sh) continue;
+          const ni = ny * sw + nx;
+          if (active[ni] && !seen[ni]) { seen[ni] = 1; q.push(ni); }
+        }
+      }
+      if (area >= Math.max(4, total * .00035)) components.push({ area, mass, left, right, top, bottom });
+    }
+    if (!components.length) return null;
+
+    const diag = Math.sqrt(sw * sw + sh * sh);
+    function score(c) {
+      const cx = (c.left + c.right) / 2, cy = (c.top + c.bottom) / 2;
+      const dist = Math.sqrt((cx - sw / 2) ** 2 + (cy - sh / 2) ** 2) / diag;
+      return c.mass * (1.08 - Math.min(.28, dist));
+    }
+    components.sort((a, b) => score(b) - score(a));
+    const main = components[0];
+    // 没有足够的色彩证据，不擅自裁切。例如灰阶照片或高饱和背景图。
+    if (main.mass < totalWeight * .10 || main.area < total * .002) return null;
+
+    let left = main.left, right = main.right, top = main.top, bottom = main.bottom;
+    const maxGap = Math.max(sw, sh) * .085;
+    for (const c of components.slice(1)) {
+      // 大块独立内容即使碰到角色（对白气泡的尾巴很常见）也不能并入。
+      // 真正的发饰、衣摆通常只是主体色块的一小部分，会由外扩留白保住。
+      if (c.area > main.area * .060 || c.mass > main.mass * .075) continue;
+      if (c.mass < main.mass * .028) continue;
+      const gapX = c.left > right ? c.left - right - 1 : left > c.right ? left - c.right - 1 : 0;
+      const gapY = c.top > bottom ? c.top - bottom - 1 : top > c.bottom ? top - c.bottom - 1 : 0;
+      if (Math.hypot(gapX, gapY) > maxGap) continue;
+      left = Math.min(left, c.left); right = Math.max(right, c.right);
+      top = Math.min(top, c.top); bottom = Math.max(bottom, c.bottom);
+    }
+
+    let l = Math.max(0, left * step), r = Math.min(w, (right + 1) * step);
+    let t = Math.max(0, top * step), b = Math.min(h, (bottom + 1) * step);
+    const pad = Math.max(8, Math.round(Math.max(r - l, b - t) * .14));
+    l = Math.max(0, l - pad); r = Math.min(w, r + pad);
+    t = Math.max(0, t - pad); b = Math.min(h, b + pad);
+
+    // 保持原始宽高比；app 已在裁切前决定网格高宽，不能让角色被二次拉伸。
+    const ratio = w / h;
+    let fw = r - l, fh = b - t;
+    if (fw / fh < ratio) {
+      const target = Math.min(w, fh * ratio), extra = target - fw;
+      l = Math.max(0, l - extra / 2); r = Math.min(w, l + target); l = Math.max(0, r - target);
+    } else {
+      const target = Math.min(h, fw / ratio), extra = target - fh;
+      t = Math.max(0, t - extra / 2); b = Math.min(h, t + target); t = Math.max(0, b - target);
+    }
+    l = Math.floor(l); t = Math.floor(t); r = Math.ceil(r); b = Math.ceil(b);
+    const area = (r - l) * (b - t);
+    if (area > w * h * .86 || r - l < 24 || b - t < 24) return null;
+    return { left: l, top: t, width: r - l, height: b - t, visual: true };
+  }
+
+  // ======================================================================
   // 七、主流程
   // ======================================================================
 
@@ -992,25 +1196,45 @@
     const distance = input.distance || p.distance;
     const maxColors = input.maxColors != null ? input.maxColors : p.maxColors;
 
-    // ① 背景检测（像素级，映射前）
+    // ① 背景检测（像素级，映射前）。AI mask 只参与取景，默认不直接镂空。
     let bg = { mask: null, detected: false, confidence: 0 };
-    if (input.removeBackground) {
+    const semanticMask = input.subjectMask && input.subjectMask.length === w * h ? input.subjectMask : null;
+    if (semanticMask) {
+      bg = { mask: semanticMask, detected: true, confidence: 1, semantic: true };
+    } else if (input.removeBackground) {
       bg = detectBackground(rgba, w, h, {
         seedDeltaE: input.seedDeltaE || 8,
         fillDeltaE: input.fillDeltaE || 14,
       });
     }
 
-    // ② 网格采样
-    const sampled = sampleGrid(rgba, w, h, {
+    // ② 智能取景：优先使用可靠背景蒙版；没有蒙版时再用保守的视觉主体回退。
+    // 只有裁切后的前景覆盖足够时才真正清背景；否则保留背景，避免空洞图纸。
+    let workRgba = rgba, workMask = bg.detected ? bg.mask : null, workW = w, workH = h;
+    let frame = null, backgroundApplied = !!workMask && !input.frameOnly;
+    if (input.autoFrameSubject) {
+      // 角色分割很擅长找出人物，但漫画对白框偶尔会和线稿连成一个前景块。
+      // 有足够色彩线索时，用视觉角色框把对白排除；色彩线索不足再回退 AI 蒙版。
+      const visualFrame = findVisualSubjectFrame(rgba, w, h);
+      frame = visualFrame || (workMask ? findSubjectFrame(workMask, w, h) : null);
+      if (frame) {
+        const cropped = cropToFrame(workRgba, workMask, w, h, frame);
+        workRgba = cropped.rgba; workMask = cropped.mask; workW = cropped.width; workH = cropped.height;
+        // 主体在框内仍过稀疏，说明 flood-fill 不可靠或图源并非纯背景。
+        if (cropped.foregroundCoverage < .28) { workMask = null; backgroundApplied = false; }
+      }
+    }
+
+    // ③ 网格采样
+    const sampled = sampleGrid(workRgba, workW, workH, {
       gridWidth: input.gridWidth,
       gridHeight: input.gridHeight,
       mode: p.mode,
       bits: p.bits,
-      backgroundMask: bg.detected ? bg.mask : null,
+      backgroundMask: backgroundApplied ? workMask : null,
     });
 
-    // ③ 选色 + 映射
+    // ④ 选色 + 映射
     const selectionMode = p.selection === 'cluster' ? 'cluster' : 'greedy';
     const sel = selectAndMap(sampled.cells, input.palette, {
       gridWidth: input.gridWidth,
@@ -1019,7 +1243,7 @@
       distance,
     });
 
-    // ④ 抖动（细腻档）
+    // ⑤ 抖动（细腻档）
     if (p.dither && maxColors > 0) {
       // 只对选中色抖动
       const usedPalette = sel.selectedIndices.map((j) => input.palette[j]);
@@ -1038,7 +1262,7 @@
       }
     }
 
-    // ⑤ 清理（多数表决）
+    // ⑥ 清理（多数表决）
     if (p.cleanup > 0) {
       cleanup(sel.grid, sampled.cells, {
         minNeighbors: p.cleanup, iterations: 2, gridWidth: input.gridWidth,
@@ -1046,11 +1270,11 @@
     }
     if (p.region) mergeSmallRegions(sel.grid, input.gridWidth, input.gridHeight, p.region);
 
-    // ⑥ 统计 BOM / 诊断
-    return buildResult(sel, sampled, input, bg, distance);
+    // ⑦ 统计 BOM / 诊断
+    return buildResult(sel, sampled, input, bg, distance, frame, backgroundApplied);
   }
 
-  function buildResult(sel, sampled, input, bg, distance) {
+  function buildResult(sel, sampled, input, bg, distance, frame, backgroundApplied) {
     const grid = sel.grid;
     const n = input.gridWidth, m = input.gridHeight;
     const palette = input.palette;
@@ -1080,8 +1304,11 @@
       height: m,
       selectedIndices: sel.selectedIndices,
       meanMappingDistance: sel.meanMappingDistance,
-      backgroundDetected: bg.detected,
+      backgroundDetected: backgroundApplied,
       backgroundConfidence: bg.confidence,
+      autoFramed: !!frame,
+      semanticFrame: !!bg.semantic && !!frame,
+      frame,
       bom,
       totalBeads,
       colorCount: bom.length,
@@ -1122,7 +1349,7 @@
 
   global.PixelEngine = {
     srgbToOklab, oklabDistance, rgbToLab, ciede2000,
-    detectBackground, sampleGrid, selectAndMap, dither, cleanup, mergeSmallRegions, animeEnhance, convert,
+    detectBackground, findSubjectFrame, findVisualSubjectFrame, sampleGrid, selectAndMap, dither, cleanup, mergeSmallRegions, animeEnhance, convert,
     PRESETS,
   };
 })(typeof self !== 'undefined' ? self : globalThis);

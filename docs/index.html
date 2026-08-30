@@ -50,10 +50,7 @@
   <div class="wrap">
     <div class="section-kicker">01 · CONVERT</div>
     <h2 class="section-title">拼豆图纸生成器</h2>
-    <p class="section-sub">主体取景 · 感知选色 · 区域去噪 · 可编辑用量清单</p>
-    <div class="quality-strip" aria-label="转换流程">
-      <span><i>01</i> 锁定角色主体</span><span><i>02</i> 收敛可做颜色</span><span><i>03</i> 输出跟做图纸</span>
-    </div>
+    <p class="section-sub">上传一张角色图，豆图会自动决定取景、细节和颜色。</p>
 
     <div class="card panel">
       <!-- 上传 -->
@@ -72,64 +69,44 @@
         </div>
       </div>
 
-      <div style="height:18px"></div>
-      <h3>生成设置</h3>
-      <div class="desc">默认“动漫增强”适合角色图；再按成品大小微调图纸宽度与色卡。</div>
+      <div class="auto-quality">
+        <div class="auto-quality-icon">✦</div>
+        <div>
+          <b>高质量自动模式</b>
+          <p>自动聚焦角色、保护线稿与五官，并匹配真实 MARD 拼豆色号。</p>
+        </div>
+      </div>
 
-      <div class="field">
-        <div class="field-label">图案细节</div>
+      <!-- 高级配置保留给后续编辑器；首次生成不让用户承担算法选择。 -->
+      <div class="advanced-settings" hidden>
         <div class="chips" id="presetChips"></div>
-      </div>
-
-      <div class="field">
-        <div class="field-label">图纸宽度 <span class="dim" id="widthLabel">81 格</span></div>
         <div class="seg" id="widthSeg"></div>
-        <div id="customWidthRow" hidden style="margin-top:12px">
-          <input type="range" id="customWidth" min="16" max="200" value="81">
-          <div style="text-align:right;font-size:12px;color:var(--text2)" id="customWidthVal">81 格</div>
-        </div>
-      </div>
-
-      <div class="field">
-        <div class="field-label">拼豆色卡 <span class="dim" id="paletteInfo"></span></div>
-        <select class="select-input" id="paletteSelect"></select>
-      </div>
-
-      <div class="switch-row">
-        <div class="lbl">
-          <b>自动去除背景</b>
-          <span>双阈值 flood-fill，纯色背景一键清除</span>
-        </div>
-        <div class="tgl on" id="bgToggle"></div>
-      </div>
-      <div class="switch-row">
-        <div class="lbl">
-          <b>细腻色差（CIEDE2000）</b>
-          <span id="deHint">OKLab · 感知最快</span>
-        </div>
-        <div class="tgl" id="deToggle"></div>
+        <div id="customWidthRow"><input type="range" id="customWidth" min="16" max="200" value="104"><div id="customWidthVal"></div></div>
+        <span id="widthLabel"></span>
+        <span id="paletteInfo"></span><select id="paletteSelect"></select>
+        <div id="bgToggle"></div><div id="deToggle"></div><span id="deHint"></span>
       </div>
 
       <div style="margin-top:22px">
-        <button class="btn primary" id="generateBtn" style="width:100%;padding:15px;font-size:17px" disabled>✨ 生成图纸</button>
+        <button class="btn primary" id="generateBtn" style="width:100%;padding:15px;font-size:17px" disabled>✨ 自动生成高质量图纸</button>
       </div>
       <div class="loading" id="loading">
         <div class="spinner"></div>
-        <div style="margin-top:12px;color:var(--text2);font-size:14px">正在生成图纸…（本地计算，请稍候）</div>
+        <div id="loadingText" style="margin-top:12px;color:var(--text2);font-size:14px">正在生成图纸…（本地计算，请稍候）</div>
       </div>
       <div class="err" id="err"></div>
     </div>
 
     <!-- 结果 -->
     <div class="card panel result" id="result">
-      <h3>图纸预览</h3>
-      <div class="desc" id="resultDesc"></div>
+      <h3>这是你的拼豆成品效果</h3>
+      <div class="desc" id="resultDesc">先看角色是否清楚；满意后再打开施工图制作。</div>
       <div class="stats" id="stats"></div>
       <div class="view-bar">
         <div class="seg" id="viewSeg">
-          <button data-view="grid" class="on">🧩 图纸</button>
-          <button data-view="compare">🔄 对比</button>
-          <button data-view="mock">✨ 成品模拟</button>
+          <button data-view="mock" class="on">✨ 成品效果</button>
+          <button data-view="compare">🔄 对比原图</button>
+          <button data-view="grid">🧩 施工图</button>
         </div>
       </div>
       <div class="canvas-wrap" id="canvasWrap"></div>
@@ -145,8 +122,8 @@
         <div style="font-size:12px;color:var(--text2);margin-top:8px">点击色块可排除该色号（自动重映射到最近色），再次点击恢复</div>
       </div>
       <div class="cta-row export-row" style="justify-content:flex-start;margin-top:22px">
-        <button class="btn primary" id="dlPng">⬇️ 下载 PNG 图纸</button>
-        <button class="btn outline" id="printBtn">🖨️ 打印</button>
+        <button class="btn primary" id="dlPng">⬇️ 下载施工图</button>
+        <button class="btn outline" id="printBtn">🖨️ 打印施工图</button>
       </div>
     </div>
   </div>
@@ -191,7 +168,9 @@
   made with 💖 for 拼豆玩家 · © 2026 豆图作者 · QQ 3053676729 · 3053676729@qq.com
 </footer>
 
+<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.min.js" crossorigin="anonymous"></script>
 <script src="pixel-engine.js"></script>
+<script src="anime-seg.js"></script>
 <script src="pixel-app.js"></script>
 </body>
 </html>

@@ -17,14 +17,15 @@
 
   var palettes = {}; // id -> [{code,r,g,b,name,productCode}]
   var worker = null;
-  try { worker = new Worker('pixel-worker.js'); } catch (e) { worker = null; }
+  try { worker = new Worker('pixel-worker.js?v=subject-frame-v5'); } catch (e) { worker = null; }
 
   var state = {
     analysis: null,       // {data, width, height} ≤1024
     fileName: '',
     fileSize: 0,
     preset: 'anime',
-    width: 81,
+    // 首次体验固定高质量策略，不把网格/算法选择交给用户。
+    width: 104,
     paletteId: 'mard_221',
     removeBackground: true,
     detailed: false,
@@ -33,7 +34,7 @@
     bom: [],              // 当前 BOM
     totalBeads: 0,
     excluded: new Set(),  // 已排除色号 code
-    view: 'grid',
+    view: 'mock',
   };
 
   // ====================================================================
@@ -330,6 +331,7 @@
 
     $('err').style.display = 'none';
     $('loading').style.display = 'block';
+    $('loadingText').textContent = '正在识别角色主体…（图片仅在本机处理）';
     $('generateBtn').disabled = true;
 
     var input = {
@@ -341,9 +343,19 @@
       removeBackground: state.removeBackground,
       distance: state.detailed ? 'ciede2000' : 'oklab',
       maxColors: null,
+      autoFrameSubject: true,
     };
 
-    runConvert(input).then(function (r) {
+    // 高精度 AI 蒙版只用来自动取景，不会把背景生硬挖空；失败时无感降级。
+    var smartMask = window.AnimeSegmenter ? AnimeSegmenter.segment(a) : Promise.resolve(null);
+    smartMask.then(function (mask) {
+      if (mask) {
+        input.subjectMask = mask;
+        input.frameOnly = true;
+      }
+      $('loadingText').textContent = '正在生成可跟做的拼豆图纸…';
+      return runConvert(input);
+    }).then(function (r) {
       state.result = r;
       state.excluded = new Set();
       state.grid = new Int32Array(r.grid);
@@ -415,8 +427,14 @@
     parts.push('总颗数 <b>' + state.totalBeads.toLocaleString() + '</b>');
     parts.push('平均色差 <b>ΔE ' + r.meanMappingDistance.toFixed(1) + '</b>');
     var bgText;
-    if (r.backgroundDetected) {
-      bgText = '背景已移除（置信度 <b>' + Math.round(r.backgroundConfidence * 100) + '%</b>）';
+    if (r.semanticFrame) {
+      bgText = 'AI 已识别角色并自动取景';
+    } else if (r.autoFramed) {
+      bgText = r.backgroundDetected
+        ? '已自动聚焦角色并清理背景'
+        : '已自动聚焦角色（保留背景更安全）';
+    } else if (r.backgroundDetected) {
+      bgText = '背景已清理';
     } else if (state.removeBackground) {
       bgText = '未检测到明显背景';
     } else {
@@ -433,7 +451,7 @@
 
     var meta = PALETTE_META.filter(function (m) { return m.id === state.paletteId; })[0];
     $('resultDesc').textContent =
-      meta.name + ' 色卡 · ' + (PRESET_LABELS[state.preset] || state.preset) + ' 档 · 纯本地计算，图片未上传';
+      meta.name + ' 色卡 · 自动高质量模式 · 纯本地计算，图片未上传';
   }
 
   function renderBom() {
